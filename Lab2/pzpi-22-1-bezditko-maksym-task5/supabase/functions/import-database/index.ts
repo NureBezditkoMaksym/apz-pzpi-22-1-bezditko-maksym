@@ -1,18 +1,73 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-ignore: Import from URL
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
-interface TableInfo {
-  name: string;
-  data: any[];
+interface TableData {
+  content: any[];
 }
 
 interface ImportData {
-  [tableName: string]: TableInfo;
+  [tableName: string]: TableData;
 }
 
-serve(async (req) => {
+// Helpers for AES-GCM decryption
+function decodeBase64(base64: string): Uint8Array {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+function decodeUTF8(buffer: Uint8Array): string {
+  return new TextDecoder().decode(buffer);
+}
+
+async function decryptData(
+  encryptedPayload: {
+    iv: string;
+    salt: string;
+    data: string;
+  },
+  password: string
+): Promise<ImportData> {
+  const { iv, salt, data } = encryptedPayload;
+
+  const ivBytes = decodeBase64(iv);
+  const saltBytes = decodeBase64(salt);
+  const encryptedBytes = decodeBase64(data);
+  const passwordBytes = new TextEncoder().encode(password);
+
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    passwordBytes,
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: saltBytes,
+      iterations: 100_000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["decrypt"]
+  );
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: ivBytes },
+    aesKey,
+    encryptedBytes
+  );
+
+  const decryptedText = decodeUTF8(new Uint8Array(decryptedBuffer));
+  return JSON.parse(decryptedText);
+}
+
+// Deno API for Supabase Edge Functions
+// @ts-ignore: Deno namespace will be available in Supabase Edge Functions environment
+Deno.serve(async (req) => {
   try {
-    // Only allow POST requests
     if (req.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
         status: 405,
@@ -20,16 +75,15 @@ serve(async (req) => {
       });
     }
 
-    // Parse the uploaded JSON file
+    // Parse and decrypt uploaded data
     let importData: ImportData;
     try {
       const contentType = req.headers.get("content-type") || "";
 
       if (contentType.includes("application/json")) {
-        // Direct JSON data
+        // Support direct raw JSON (unencrypted)
         importData = await req.json();
       } else if (contentType.includes("multipart/form-data")) {
-        // Form upload
         const formData = await req.formData();
         const file = formData.get("file");
 
@@ -38,13 +92,29 @@ serve(async (req) => {
         }
 
         const fileContent = await file.text();
-        importData = JSON.parse(fileContent);
+
+        try {
+          // Try to parse as encrypted payload first
+          const encryptedPayload = JSON.parse(fileContent);
+          const ENCRYPTION_PASSWORD =
+            Deno.env.get("ENCRYPTION_PASSWORD") ?? "default-secret";
+          importData = await decryptData(encryptedPayload, ENCRYPTION_PASSWORD);
+        } catch (maybeEncryptedError) {
+          try {
+            // Fallback to plain JSON
+            importData = JSON.parse(fileContent);
+          } catch (finalError) {
+            throw new Error("Invalid file format: " + finalError.message);
+          }
+        }
       } else {
         throw new Error("Unsupported content type. Please upload a JSON file.");
       }
     } catch (error) {
       return new Response(
-        JSON.stringify({ error: "Invalid JSON data: " + error.message }),
+        JSON.stringify({
+          error: "Failed to parse import data: " + error.message,
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -52,7 +122,7 @@ serve(async (req) => {
       );
     }
 
-    // Create a Supabase client
+    // Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -64,59 +134,65 @@ serve(async (req) => {
       }
     );
 
-    // Process each table in the import data
+    const IMPORT_ORDER = [
+      "user_roles",
+      "users",
+      "user_role_assignments",
+      "subscriptions",
+      "health_metrics",
+      "reports",
+      "notifications",
+    ];
+
     const results: Record<
       string,
       { success: boolean; message: string; count?: number }
     > = {};
 
-    // First, clear all existing data
-    // Get a list of tables
-    const { data: tables, error: tablesError } = await supabaseClient
-      .from("information_schema.tables")
-      .select("table_name")
-      .eq("table_schema", "public")
-      .not("table_name", "like", "pg_%")
-      .not("table_name", "like", "schema_%");
-
-    if (tablesError) {
-      throw new Error(`Error fetching tables: ${tablesError.message}`);
+    try {
+      await supabaseClient.rpc("exec_sql", {
+        query: "SET session_replication_role = 'replica';",
+      });
+    } catch (error) {
+      console.warn("Could not disable foreign key checks:", error.message);
     }
 
-    // Disable foreign key checks temporarily (if possible in Supabase)
-    await supabaseClient.rpc("set_config", {
-      parameter: "session.force_foreign_key_checks",
-      value: "false",
-    });
+    console.log(importData);
 
-    // Clear existing data in reverse order to handle foreign key constraints
-    for (const table of [...tables].reverse()) {
-      const tableName = table.table_name;
-      const { error: deleteError } = await supabaseClient
-        .from(tableName)
-        .delete()
-        .neq("id", 0); // Delete all rows
+    const CLEAR_ORDER = [...IMPORT_ORDER].reverse();
+    for (const tableName of CLEAR_ORDER) {
+      if (importData[tableName]) {
+        try {
+          const { error: deleteError } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .gte("id", 0);
 
-      if (deleteError) {
-        results[tableName] = {
-          success: false,
-          message: `Error clearing table ${tableName}: ${deleteError.message}`,
-        };
+          if (deleteError) {
+            console.warn(
+              `Error clearing table ${tableName}:`,
+              deleteError.message
+            );
+          }
+        } catch (error) {
+          console.error(`Error clearing table ${tableName}:`, error.message);
+        }
       }
     }
 
-    // Re-enable foreign key checks
-    await supabaseClient.rpc("set_config", {
-      parameter: "session.force_foreign_key_checks",
-      value: "true",
-    });
+    for (const tableName of IMPORT_ORDER) {
+      if (!importData[tableName]) {
+        results[tableName] = {
+          success: true,
+          message: "Table not found in import data",
+          count: 0,
+        };
+        continue;
+      }
 
-    // Now import the data in the correct order
-    for (const tableName in importData) {
-      const tableInfo = importData[tableName];
-      const tableData = tableInfo.data;
+      const tableData = importData[tableName].content;
 
-      if (!tableData || !tableData.length) {
+      if (!tableData || !Array.isArray(tableData) || !tableData.length) {
         results[tableName] = {
           success: true,
           message: "No data to import",
@@ -126,10 +202,23 @@ serve(async (req) => {
       }
 
       try {
-        // Insert all rows
         const { error: insertError } = await supabaseClient
           .from(tableName)
           .insert(tableData);
+
+        if (tableName === "users") {
+          for (const user of tableData) {
+            await supabaseClient.auth.admin.createUser({
+              email: user.email,
+              email_confirm: true,
+              phone: user.phone,
+              user_metadata: {
+                username: user.username,
+                is_premium: user.is_premium ?? false,
+              },
+            });
+          }
+        }
 
         if (insertError) {
           results[tableName] = {
@@ -149,6 +238,14 @@ serve(async (req) => {
           message: `Exception importing to ${tableName}: ${error.message}`,
         };
       }
+    }
+
+    try {
+      await supabaseClient.rpc("exec_sql", {
+        query: "SET session_replication_role = 'origin';",
+      });
+    } catch (error) {
+      console.warn("Could not re-enable foreign key checks:", error.message);
     }
 
     return new Response(

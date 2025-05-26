@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create the users table
 CREATE TABLE public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    auth_id UUID UNIQUE REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+    auth_id UUID UNIQUE,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     is_premium BOOLEAN DEFAULT FALSE,
@@ -16,7 +16,7 @@ CREATE TABLE public.users (
 -- Create the health_metrics table
 CREATE TABLE public.health_metrics (
     metric_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.users(auth_id),
+    user_id UUID,
     date DATE NOT NULL,
     calories INT,
     water_ml INT,
@@ -28,7 +28,7 @@ CREATE TABLE public.health_metrics (
 -- Create the subscriptions table
 CREATE TABLE public.subscriptions (
     subscription_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.users(auth_id),
+    user_id UUID,
     start_date DATE NOT NULL,
     end_date DATE,
     status VARCHAR(20) NOT NULL
@@ -37,7 +37,7 @@ CREATE TABLE public.subscriptions (
 -- Create the notifications table
 CREATE TABLE public.notifications (
     notification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.users(auth_id),
+    user_id UUID,
     message TEXT NOT NULL,
     sent_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -45,7 +45,7 @@ CREATE TABLE public.notifications (
 -- Create the reports table
 CREATE TABLE public.reports (
     report_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES public.users(auth_id),
+    user_id UUID,
     report_date DATE NOT NULL,
     report_data JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -59,8 +59,8 @@ CREATE TABLE public.user_roles (
 
 -- Create the user_role_assignments table
 CREATE TABLE public.user_role_assignments (
-    user_id UUID REFERENCES public.users(auth_id),
-    role_id UUID REFERENCES public.user_roles(role_id),
+    user_id UUID,
+    role_id UUID,
     PRIMARY KEY (user_id, role_id)
 );
 

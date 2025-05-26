@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
 
     const { username, email, is_premium, phone } = await req.json();
 
-    if (!phone || !username || !email || !is_premium) {
+    if (!phone || !username || !email || typeof is_premium !== "boolean") {
       throw new Error("Phone number, username, email, and is_premium are required");
     }
 
