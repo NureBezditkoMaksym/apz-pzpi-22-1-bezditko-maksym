@@ -1,0 +1,4140 @@
+﻿Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+
+
+
+
+
+ЗВІТ
+з лабораторної роботи №3
+з дисципліни "Архітектура програмного забезпечення"
+на тему: "Розробка веб клієнта системи"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Виконав
+ст. гр. ПЗПІ-22-1
+Бездітко Максим Андрійович
+
+
+Перевірив
+ст. викладач кафедри ПІ
+Сокорчук Ігор Петрович
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Харків 2025 р.
+1 ІСТОРІЯ ЗМІН
+
+
+№
+	Дата
+	Версія звіту
+	Опис змін та виправлень
+	1
+	01.05.2025
+	0.1
+	Створено документ, додано завдання та почато опис виконаної роботи.
+	2
+	01.05.2025
+	0.2
+	Додано опис функціоналу для користувачів.
+	3
+	01.05.2025
+	0.3
+	Додано опис функціоналу для адміністраторів.
+	4
+	01.05.2025
+	0.4
+	Додано опис функціоналу для операторів над базою даних.
+	5
+	01.05.2025
+	0.5
+	Додано опис архітектурних рішень.
+	________________
+
+
+2 ЗАВДАННЯ
+
+
+Розробити веб-клієнтську частину системи здорового харчування, яка забезпечить повноцінну взаємодію користувача з усіма модулями через інтерфейс, реалізований з використанням бібліотеки React. Основний функціонал інтерфейсу включатиме повний набір CRUD-операцій для роботи з метриками здоров’я, користувачами, підписками, сповіщеннями, звітами та ролями. Крім того, буде реалізовано окремий модуль для перегляду аналітичних звітів, а також окремий інтерфейс для експорту та імпорту всієї бази даних через захищене паролем вікно з підтримкою шифрування.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+________________
+
+
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+Веб-клієнт системи контролю здорового харчування реалізовано на основі бібліотеки React, що забезпечує швидке створення адміністративного інтерфейсу з підтримкою стандартних CRUD-операцій. Уся логіка побудована на узагальненому підході до управління ресурсами — користувачами, метриками здоров’я, звітами, підписками, сповіщеннями та ролями. Основною перевагою використання React стало мінімальне дублювання коду та інтеграція з REST API без потреби в додаткових обгортках або ручній обробці запитів.
+        Бізнес-логіка взаємодії з API реалізується через dataProvider, який мапить усі запити системи на відповідні Edge Functions Supabase. Завдяки React можливе централізоване керування станами завантаження, помилок, успіху та авторизації. Усі основні компоненти — створення, перегляд, редагування та видалення — забезпечуються за рахунок базових шаблонів React та їх адаптації до потреб системи.
+        Інтерфейс побудований із застосуванням принципу ролей, реалізованого через authProvider, який читає JWT-токен, отриманий під час авторизації користувача через Supabase Auth, та динамічно обмежує доступ до окремих сторінок і дій. В системі виділено чотири основні ролі: користувачі (authenticated), адміністратори (admin), аналітики (analyst) та системні функції (cron). Ролі наслідують одна одну відповідно до заданої ієрархії, що дозволяє централізовано реалізувати доступ до різних частин UI.
+        Користувачі з базовою роллю можуть створювати, переглядати та оновлювати власні показники (метрики здоров’я), отримувати автоматичні сповіщення та переглядати персональні щотижневі звіти. Адміністратори мають доступ до всіх користувацьких функцій та додаткових модулів: керування підписками, ролями, видалення записів, генерація звітів для будь-якого користувача. Роль аналітика забезпечує доступ виключно до модуля звітів та інтерфейсу експорту/імпорту даних. Системна роль cron застосовується для автоматичного запуску щотижневих звітів через прихований інтерфейс із перевіркою секретного ключа.
+        Особливу увагу приділено реалізації компонента резервного копіювання (експорту) та відновлення (імпорту) всієї бази даних. Цей функціонал винесено в окремий модуль і доступний лише користувачам з роллю admin або analyst. Інтерфейс містить форму із захищеним полем введення пароля та текстовим полем для вставки або генерації зашифрованого рядка. У разі натискання кнопки Export система надсилає запит із паролем на відповідну функцію Supabase, яка повертає JSON із полем db. Для імпорту користувач вставляє зашифровані дані й пароль, після чого виконується запит до функції відновлення, яка декодує вміст, очищує таблиці та відновлює дані в правильному порядку.
+        Станова логіка цього модуля відображена на діаграмі: від початкового стану (очікування пароля) до формування запиту, обробки результату та виводу повідомлення про успіх або помилку. Перехід між станами реалізовано через зміну локального стану компонента. У разі успішної операції користувач бачить повідомлення й може або повернутись до початкового стану (очистити форму), або змінити поле, що автоматично повторно запускає ланцюг валідації.
+        Уся логіка веб-клієнта є розширюваною: кожен модуль підтримує динамічну фільтрацію, сортування, імпорт/експорт CSV (для окремих таблиць), а також дозволяє зручно тестувати всі функції безпосередньо з інтерфейсу без необхідності використовувати сторонні інструменти на кшталт Postman. Компоненти легко масштабуються при розширенні функціоналу, зберігаючи цілісність архітектури та єдині принципи взаємодії.
+        Додатково продемонстровано ключові сценарії використання як діаграма взаємодії.
+        Записуємо змістовне відео з описом проєкту, проставляємо таймкоди та завантажуємо на сервіс YouTube. Транскрипція та посилання на відео включено в додаток А.
+________________
+
+
+4 ВИСНОВКИ
+
+
+        У ході виконання роботи було розроблено вебклієнт на основі бібліотеки React, що забезпечує зручну та повноцінну взаємодію користувача з усіма модулями системи контролю здорового харчування. Основний функціонал охоплює CRUD-операції з користувачами, метриками здоров’я, підписками, сповіщеннями, звітами та ролями. Також реалізовано окремий модуль для перегляду щотижневих звітів і внутрішню панель для резервного копіювання та відновлення даних через захищене паролем вікно. Уся логіка побудована з урахуванням ролей користувачів і надає різні рівні доступу до функцій системи. Застосування React дозволило досягти високого рівня узгодженості інтерфейсу, спростити інтеграцію з API та забезпечити масштабованість у майбутньому.
+
+
+________________
+
+
+ДОДАТОК А
+ВІДЕОЗАПИС
+
+
+Відеозапис презентації результатів лабораторної роботи: https://www.youtube.com/watch?v=HJ9b_TnmJAc
+
+
+Хронологічний опис відеозапису:
+________________
+
+
+ДОДАТОК Б
+ГРАФІЧНІ МАТЕРІАЛИ
+
+
+  
+
+Рисунок Б.1 — UML-діаграма прецедентів
+
+
+  
+
+Рисунок Б.2 — UML-діаграма компонентів
+  
+
+Рисунок Б.3 — UML-діаграма станів функціоналу імпорту/експорту бази даних
+
+
+  
+
+Рисунок Б.4 — UML-діаграма взаємодії ключових сценаріїв
+________________
+ДОДАТОК В
+ПРОГРАМНИЙ КОД
+
+
+В.1 App.tsx.
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/App.tsx
+1  import React, { useState } from "react";
+2  import { ConfigProvider, Spin } from "antd";
+3  import { useAuth } from "./hooks/useAuth";
+4  import LoginScreen from "./components/auth/LoginScreen";
+5  import SignUpScreen from "./components/auth/SignUpScreen";
+6  import DashboardScreen from "./components/dashboard/DashboardScreen";
+7  
+8  // Ant Design theme configuration
+9  const theme = {
+10   token: {
+11     colorPrimary: "#1890ff",
+12     borderRadius: 8,
+13     fontFamily:
+14       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+15   },
+16 };
+17 
+18 type AuthView = "login" | "signup" | "forgot-password";
+19 
+20 function App() {
+21   const { user, loading } = useAuth();
+22   const [authView, setAuthView] = useState<AuthView>("login");
+23 
+24   // Show loading spinner while checking authentication
+25   if (loading) {
+26     return (
+27       <ConfigProvider theme={theme}>
+28         <div
+29           style={{
+30             height: "100vh",
+31             display: "flex",
+32             alignItems: "center",
+33             justifyContent: "center",
+34             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+35           }}
+36         >
+37           <Spin size="large" />
+38         </div>
+39       </ConfigProvider>
+40     );
+41   }
+42 
+43   // If user is authenticated, show dashboard
+44   if (user) {
+45     return (
+46       <ConfigProvider theme={theme}>
+47         <DashboardScreen />
+48       </ConfigProvider>
+49     );
+50   }
+51 
+52   // If user is not authenticated, show auth screens
+53   const renderAuthScreen = () => {
+54     switch (authView) {
+55       case "signup":
+56         return <SignUpScreen onSwitchToLogin={() => setAuthView("login")} />;
+57       case "forgot-password":
+58         // For now, redirect back to login
+59         // You can implement a forgot password screen here
+60         setAuthView("login");
+61         return (
+62           <LoginScreen
+63             onSwitchToSignUp={() => setAuthView("signup")}
+64             onSwitchToForgotPassword={() => setAuthView("forgot-password")}
+65           />
+66         );
+67       case "login":
+68       default:
+69         return (
+70           <LoginScreen
+71             onSwitchToSignUp={() => setAuthView("signup")}
+72             onSwitchToForgotPassword={() => setAuthView("forgot-password")}
+73           />
+74         );
+75     }
+76   };
+77 
+78   return <ConfigProvider theme={theme}>{renderAuthScreen()}</ConfigProvider>;
+79 }
+80 
+81 export default App;
+
+
+
+
+В.2 DatabaseManagementPage.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/admin/DatabaseManagementPage.tsx
+1  import React, { useState } from "react";
+2  import {
+3    Card,
+4    Button,
+5    Space,
+6    Modal,
+7    Form,
+8    Input,
+9    Upload,
+10    message,
+11    Typography,
+12    Alert,
+13    Row,
+14    Col,
+15    Statistic,
+16    List,
+17    Tag,
+18  } from "antd";
+19  import {
+20    DownloadOutlined,
+21    UploadOutlined,
+22    DatabaseOutlined,
+23    ExclamationCircleOutlined,
+24    FileTextOutlined,
+25    LockOutlined,
+26    CheckCircleOutlined,
+27    CloseCircleOutlined,
+28  } from "@ant-design/icons";
+29  import { useAdmin } from "../../hooks/useAdmin";
+30  import { supabase } from "../../lib/supabase";
+31  import type { UploadFile } from "antd/es/upload/interface";
+32  import { useAuth } from "../../hooks/useAuth";
+33  
+34  const { Title, Text, Paragraph } = Typography;
+35  const { Dragger } = Upload;
+36  
+37  interface ImportResult {
+38    [tableName: string]: {
+39      success: boolean;
+40      message: string;
+41      count?: number;
+42    };
+43  }
+44  
+45  const DatabaseManagementPage: React.FC = () => {
+46    const { isDataAnalyst, loading: adminLoading } = useAdmin();
+47    const [exportLoading, setExportLoading] = useState(false);
+48    const [importLoading, setImportLoading] = useState(false);
+49    const [exportModalVisible, setExportModalVisible] = useState(false);
+50    const [importModalVisible, setImportModalVisible] = useState(false);
+51    const [importResults, setImportResults] = useState<ImportResult | null>(null);
+52    const [fileList, setFileList] = useState<UploadFile[]>([]);
+53    const [exportForm] = Form.useForm();
+54    const [importForm] = Form.useForm();
+55  
+56    // Handle database export
+57    const handleExport = async (values: { password: string }) => {
+58      setExportLoading(true);
+59      try {
+60        const {
+61          data: { session },
+62        } = await supabase.auth.getSession();
+63        if (!session) {
+64          message.error("Authentication required");
+65          return;
+66        }
+67  
+68        const { data: user } = await supabase
+69          .from("users")
+70          .select("id")
+71          .eq("auth_id", session.user.id)
+72          .single();
+73  
+74        const { data, error } = await supabase.functions.invoke(
+75          "export-database",
+76          {
+77            body: { password: values.password, userId: user?.id || "" },
+78          }
+79        );
+80  
+81        if (error) {
+82          throw error;
+83        }
+84  
+85        // Get the filename from the response headers
+86        let filename = data.filename || "database-export.encrypted.json";
+87  
+88        // Create blob and download from base64 data
+89        const byteCharacters = atob(data.fileContent);
+90        const byteNumbers = new Array(byteCharacters.length);
+91        for (let i = 0; i < byteCharacters.length; i++) {
+92          byteNumbers[i] = byteCharacters.charCodeAt(i);
+93        }
+94        const byteArray = new Uint8Array(byteNumbers);
+95        const blob = new Blob([byteArray], { type: "application/json" });
+96  
+97        const url = window.URL.createObjectURL(blob);
+98        const link = document.createElement("a");
+99        link.href = url;
+100        link.download = filename;
+101        document.body.appendChild(link);
+102        link.click();
+103        document.body.removeChild(link);
+104        window.URL.revokeObjectURL(url);
+105  
+106        message.success("Database exported successfully!");
+107        setExportModalVisible(false);
+108        exportForm.resetFields();
+109      } catch (error) {
+110        console.error("Export error:", error);
+111        const errorMessage =
+112          error instanceof Error ? error.message : "Unknown error occurred";
+113        message.error(`Export failed: ${errorMessage}`);
+114      } finally {
+115        setExportLoading(false);
+116      }
+117    };
+118  
+119    // Handle database import
+120    const handleImport = async (values: { password: string }) => {
+121      if (fileList.length === 0) {
+122        message.error("Please select a file to import");
+123        return;
+124      }
+125  
+126      setImportLoading(true);
+127      try {
+128        const {
+129          data: { session },
+130        } = await supabase.auth.getSession();
+131        if (!session) {
+132          message.error("Authentication required");
+133          return;
+134        }
+135  
+136        const formData = new FormData();
+137        formData.append("file", fileList[0].originFileObj as File);
+138        formData.append("password", values.password);
+139  
+140        const response = await fetch(
+141          `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/import-database`,
+142          {
+143            method: "POST",
+144            headers: {
+145              Authorization: `Bearer ${session.access_token}`,
+146            },
+147            body: formData,
+148          }
+149        );
+150  
+151        const result = await response.json();
+152  
+153        if (!response.ok) {
+154          throw new Error(result.error || "Import failed");
+155        }
+156  
+157        setImportResults(result.results);
+158        message.success("Database import completed!");
+159        setImportModalVisible(false);
+160        importForm.resetFields();
+161        setFileList([]);
+162      } catch (error) {
+163        console.error("Import error:", error);
+164        const errorMessage =
+165          error instanceof Error ? error.message : "Unknown error occurred";
+166        message.error(`Import failed: ${errorMessage}`);
+167      } finally {
+168        setImportLoading(false);
+169      }
+170    };
+171  
+172    // Upload props
+173    const uploadProps = {
+174      fileList,
+175      beforeUpload: (file: File) => {
+176        const isJSON =
+177          file.type === "application/json" || file.name.endsWith(".json");
+178        if (!isJSON) {
+179          message.error("You can only upload JSON files!");
+180          return false;
+181        }
+182        const isLt10M = file.size / 1024 / 1024 < 10;
+183        if (!isLt10M) {
+184          message.error("File must be smaller than 10MB!");
+185          return false;
+186        }
+187        return false; // Prevent auto upload
+188      },
+189      onChange: ({ fileList: newFileList }: { fileList: UploadFile[] }) => {
+190        setFileList(newFileList.slice(-1)); // Keep only the last file
+191      },
+192      onRemove: () => {
+193        setFileList([]);
+194      },
+195    };
+196  
+197    if (adminLoading) {
+198      return (
+199        <div style={{ padding: 24, textAlign: "center" }}>
+200          <Text>Loading database management panel...</Text>
+201        </div>
+202      );
+203    }
+204  
+205    if (!isDataAnalyst) {
+206      return (
+207        <div style={{ padding: 24, textAlign: "center" }}>
+208          <Alert
+209            message="Access Denied"
+210            description="You need Data Analyst role to access this page."
+211            type="error"
+212            showIcon
+213          />
+214        </div>
+215      );
+216    }
+217  
+218    return (
+219      <div style={{ padding: 24 }}>
+220        <div
+221          style={{
+222            marginBottom: 24,
+223            display: "flex",
+224            justifyContent: "space-between",
+225            alignItems: "center",
+226          }}
+227        >
+228          <Title level={2}>
+229            <DatabaseOutlined style={{ marginRight: 8 }} />
+230            Database Management
+231          </Title>
+232          <Tag color="blue">Data Analyst</Tag>
+233        </div>
+234  
+235        {/* Warning Alert */}
+236        <Alert
+237          message="Important Notice"
+238          description="Database operations are powerful and can affect all system data. Please ensure you have proper backups and understand the implications before proceeding."
+239          type="warning"
+240          showIcon
+241          style={{ marginBottom: 24 }}
+242        />
+243  
+244        {/* Statistics */}
+245        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+246          <Col xs={24} sm={12} lg={8}>
+247            <Card>
+248              <Statistic
+249                title="Export Operations"
+250                value="Secure Backup"
+251                prefix={<DownloadOutlined />}
+252                valueStyle={{ color: "#1890ff" }}
+253              />
+254            </Card>
+255          </Col>
+256          <Col xs={24} sm={12} lg={8}>
+257            <Card>
+258              <Statistic
+259                title="Import Operations"
+260                value="Data Restore"
+261                prefix={<UploadOutlined />}
+262                valueStyle={{ color: "#52c41a" }}
+263              />
+264            </Card>
+265          </Col>
+266          <Col xs={24} sm={12} lg={8}>
+267            <Card>
+268              <Statistic
+269                title="Security"
+270                value="Encrypted"
+271                prefix={<LockOutlined />}
+272                valueStyle={{ color: "#722ed1" }}
+273              />
+274            </Card>
+275          </Col>
+276        </Row>
+277  
+278        {/* Main Actions */}
+279        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+280          {/* Export Database */}
+281          <Col xs={24} lg={12}>
+282            <Card
+283              title={
+284                <Space>
+285                  <DownloadOutlined />
+286                  Export Database
+287                </Space>
+288              }
+289              extra={<Tag color="blue">Backup</Tag>}
+290            >
+291              <Paragraph>
+292                Export all database tables to an encrypted JSON file. This creates
+293                a complete backup of your system data including users, health
+294                metrics, reports, and configurations.
+295              </Paragraph>
+296              <ul>
+297                <li>All tables are exported</li>
+298                <li>Data is encrypted with your password</li>
+299                <li>File is automatically downloaded</li>
+300                <li>Timestamp included in filename</li>
+301              </ul>
+302              <Button
+303                type="primary"
+304                icon={<DownloadOutlined />}
+305                onClick={() => setExportModalVisible(true)}
+306                loading={exportLoading}
+307                size="large"
+308                style={{ width: "100%" }}
+309              >
+310                Export Database
+311              </Button>
+312            </Card>
+313          </Col>
+314  
+315          {/* Import Database */}
+316          <Col xs={24} lg={12}>
+317            <Card
+318              title={
+319                <Space>
+320                  <UploadOutlined />
+321                  Import Database
+322                </Space>
+323              }
+324              extra={<Tag color="orange">Restore</Tag>}
+325            >
+326              <Paragraph>
+327                Import data from an encrypted JSON backup file. This will replace
+328                existing data with the imported data. Use with caution as this
+329                operation cannot be undone.
+330              </Paragraph>
+331              <ul>
+332                <li>Supports encrypted backup files</li>
+333                <li>Requires the original password</li>
+334                <li>Replaces existing data</li>
+335                <li>Shows detailed import results</li>
+336              </ul>
+337              <Button
+338                type="primary"
+339                icon={<UploadOutlined />}
+340                onClick={() => setImportModalVisible(true)}
+341                loading={importLoading}
+342                size="large"
+343                style={{ width: "100%" }}
+344                danger
+345              >
+346                Import Database
+347              </Button>
+348            </Card>
+349          </Col>
+350        </Row>
+351  
+352        {/* Import Results */}
+353        {importResults && (
+354          <Card title="Import Results" style={{ marginBottom: 24 }}>
+355            <List
+356              dataSource={Object.entries(importResults)}
+357              renderItem={([tableName, result]) => (
+358                <List.Item>
+359                  <List.Item.Meta
+360                    avatar={
+361                      result.success ? (
+362                        <CheckCircleOutlined style={{ color: "#52c41a" }} />
+363                      ) : (
+364                        <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
+365                      )
+366                    }
+367                    title={tableName}
+368                    description={
+369                      <div>
+370                        <Text type={result.success ? "success" : "danger"}>
+371                          {result.message}
+372                        </Text>
+373                        {result.count !== undefined && (
+374                          <Text type="secondary" style={{ marginLeft: 8 }}>
+375                            ({result.count} records)
+376                          </Text>
+377                        )}
+378                      </div>
+379                    }
+380                  />
+381                </List.Item>
+382              )}
+383            />
+384          </Card>
+385        )}
+386  
+387        {/* Export Modal */}
+388        <Modal
+389          title={
+390            <Space>
+391              <DownloadOutlined />
+392              Export Database
+393            </Space>
+394          }
+395          open={exportModalVisible}
+396          onCancel={() => {
+397            setExportModalVisible(false);
+398            exportForm.resetFields();
+399          }}
+400          footer={null}
+401          width={600}
+402        >
+403          <Alert
+404            message="Security Notice"
+405            description="Your password will be used to encrypt the exported data. Make sure to remember this password as it will be required for importing the data later."
+406            type="info"
+407            showIcon
+408            style={{ marginBottom: 16 }}
+409          />
+410  
+411          <Form form={exportForm} onFinish={handleExport} layout="vertical">
+412            <Form.Item
+413              name="password"
+414              label="Encryption Password"
+415              rules={[{ required: true, message: "Please enter a password" }]}
+416            >
+417              <Input.Password
+418                placeholder="Enter a strong password for encryption"
+419                prefix={<LockOutlined />}
+420              />
+421            </Form.Item>
+422  
+423            <Form.Item>
+424              <Space>
+425                <Button
+426                  type="primary"
+427                  htmlType="submit"
+428                  loading={exportLoading}
+429                  icon={<DownloadOutlined />}
+430                >
+431                  Export & Download
+432                </Button>
+433                <Button
+434                  onClick={() => {
+435                    setExportModalVisible(false);
+436                    exportForm.resetFields();
+437                  }}
+438                >
+439                  Cancel
+440                </Button>
+441              </Space>
+442            </Form.Item>
+443          </Form>
+444        </Modal>
+445  
+446        {/* Import Modal */}
+447        <Modal
+448          title={
+449            <Space>
+450              <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />
+451              Import Database
+452            </Space>
+453          }
+454          open={importModalVisible}
+455          onCancel={() => {
+456            setImportModalVisible(false);
+457            importForm.resetFields();
+458            setFileList([]);
+459          }}
+460          footer={null}
+461          width={600}
+462        >
+463          <Alert
+464            message="Danger Zone"
+465            description="This operation will replace ALL existing data with the imported data. This action cannot be undone. Please ensure you have a current backup before proceeding."
+466            type="error"
+467            showIcon
+468            style={{ marginBottom: 16 }}
+469          />
+470  
+471          <Form form={importForm} onFinish={handleImport} layout="vertical">
+472            <Form.Item label="Select Backup File" required>
+473              <Dragger {...uploadProps}>
+474                <p className="ant-upload-drag-icon">
+475                  <FileTextOutlined />
+476                </p>
+477                <p className="ant-upload-text">
+478                  Click or drag encrypted backup file to this area
+479                </p>
+480                <p className="ant-upload-hint">
+481                  Only JSON files are supported. Maximum file size: 10MB
+482                </p>
+483              </Dragger>
+484            </Form.Item>
+485  
+486            <Form.Item
+487              name="password"
+488              label="Decryption Password"
+489              rules={[
+490                {
+491                  required: true,
+492                  message: "Please enter the decryption password",
+493                },
+494              ]}
+495            >
+496              <Input.Password
+497                placeholder="Enter the password used during export"
+498                prefix={<LockOutlined />}
+499              />
+500            </Form.Item>
+501  
+502            <Form.Item>
+503              <Space>
+504                <Button
+505                  type="primary"
+506                  htmlType="submit"
+507                  loading={importLoading}
+508                  icon={<UploadOutlined />}
+509                  danger
+510                >
+511                  Import Database
+512                </Button>
+513                <Button
+514                  onClick={() => {
+515                    setImportModalVisible(false);
+516                    importForm.resetFields();
+517                    setFileList([]);
+518                  }}
+519                >
+520                  Cancel
+521                </Button>
+522              </Space>
+523            </Form.Item>
+524          </Form>
+525        </Modal>
+526      </div>
+527    );
+528  };
+529  
+530  export default DatabaseManagementPage;
+531  
+
+
+
+
+В.3 RoleManagementPage.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/admin/RoleManagementPage.tsx
+1  import React, { useState, useEffect } from "react";
+2  import {
+3    Card,
+4    Table,
+5    Button,
+6    Space,
+7    Modal,
+8    Form,
+9    Input,
+10    Select,
+11    message,
+12    Typography,
+13    Tag,
+14    Popconfirm,
+15    Row,
+16    Col,
+17    Statistic,
+18    Alert,
+19    Progress,
+20    Tabs,
+21  } from "antd";
+22  import {
+23    PlusOutlined,
+24    DeleteOutlined,
+25    UserOutlined,
+26    CrownOutlined,
+27    TeamOutlined,
+28    SettingOutlined,
+29    BarChartOutlined,
+30    PieChartOutlined,
+31    LineChartOutlined,
+32    TrophyOutlined,
+33  } from "@ant-design/icons";
+34  import {
+35    LineChart,
+36    Line,
+37    AreaChart,
+38    Area,
+39    BarChart,
+40    Bar,
+41    PieChart,
+42    Pie,
+43    Cell,
+44    XAxis,
+45    YAxis,
+46    CartesianGrid,
+47    Tooltip,
+48    Legend,
+49    ResponsiveContainer,
+50    RadialBarChart,
+51    RadialBar,
+52  } from "recharts";
+53  import { useAdmin } from "../../hooks/useAdmin";
+54  import type { Tables } from "../../types/supabase";
+55  import dayjs from "dayjs";
+56  
+57  const { Title, Text } = Typography;
+58  const { Option } = Select;
+59  const { TabPane } = Tabs;
+60  
+61  interface UserWithRoles extends Tables<"users"> {
+62    roles: Tables<"user_roles">[];
+63  }
+64  
+65  // Chart colors
+66  const COLORS = [
+67    "#0088FE",
+68    "#00C49F",
+69    "#FFBB28",
+70    "#FF8042",
+71    "#8884D8",
+72    "#82CA9D",
+73  ];
+74  
+75  const RoleManagementPage: React.FC = () => {
+76    const {
+77      isAdmin,
+78      loading: adminLoading,
+79      getAllUsers,
+80      getAllRoles,
+81      getUserRoleAssignments,
+82      assignRole,
+83      removeRole,
+84      createRole,
+85      deleteRole,
+86      deleteUser,
+87      deleteUserHealthMetrics,
+88    } = useAdmin();
+89  
+90    const [users, setUsers] = useState<UserWithRoles[]>([]);
+91    const [roles, setRoles] = useState<Tables<"user_roles">[]>([]);
+92    const [loading, setLoading] = useState(true);
+93    const [modalVisible, setModalVisible] = useState(false);
+94    const [roleModalVisible, setRoleModalVisible] = useState(false);
+95    const [selectedUser, setSelectedUser] = useState<Tables<"users"> | null>(
+96      null
+97    );
+98    const [form] = Form.useForm();
+99    const [roleForm] = Form.useForm();
+100  
+101    // Chart data processing functions
+102    const getUserRegistrationTrends = () => {
+103      const last12Months = Array.from({ length: 12 }, (_, i) => {
+104        const date = dayjs().subtract(11 - i, "month");
+105        return {
+106          month: date.format("MMM YYYY"),
+107          users: users.filter(
+108            (user) =>
+109              dayjs(user.created_at).format("MMM YYYY") ===
+110              date.format("MMM YYYY")
+111          ).length,
+112          premium: users.filter(
+113            (user) =>
+114              dayjs(user.created_at).format("MMM YYYY") ===
+115                date.format("MMM YYYY") && user.is_premium
+116          ).length,
+117        };
+118      });
+119      return last12Months;
+120    };
+121  
+122    const getRoleDistribution = () => {
+123      return roles.map((role) => ({
+124        name: role.role_name,
+125        value: users.filter((user) =>
+126          user.roles.some((userRole) => userRole.role_id === role.role_id)
+127        ).length,
+128        color: COLORS[roles.indexOf(role) % COLORS.length],
+129      }));
+130    };
+131  
+132    const getUserTypeDistribution = () => {
+133      const premiumUsers = users.filter((user) => user.is_premium).length;
+134      const regularUsers = users.length - premiumUsers;
+135      return [
+136        { name: "Premium Users", value: premiumUsers, color: "#FFD700" },
+137        { name: "Regular Users", value: regularUsers, color: "#87CEEB" },
+138      ];
+139    };
+140  
+141    const getWeeklyUserActivity = () => {
+142      const last7Days = Array.from({ length: 7 }, (_, i) => {
+143        const date = dayjs().subtract(6 - i, "day");
+144        return {
+145          day: date.format("ddd"),
+146          date: date.format("MMM DD"),
+147          newUsers: users.filter(
+148            (user) =>
+149              dayjs(user.created_at).format("YYYY-MM-DD") ===
+150              date.format("YYYY-MM-DD")
+151          ).length,
+152        };
+153      });
+154      return last7Days;
+155    };
+156  
+157    const getRoleGrowthData = () => {
+158      return roles.map((role) => {
+159        const userCount = users.filter((user) =>
+160          user.roles.some((userRole) => userRole.role_id === role.role_id)
+161        ).length;
+162        const percentage =
+163          users.length > 0 ? (userCount / users.length) * 100 : 0;
+164  
+165        return {
+166          name: role.role_name,
+167          users: userCount,
+168          percentage: Math.round(percentage),
+169          fill: COLORS[roles.indexOf(role) % COLORS.length],
+170        };
+171      });
+172    };
+173  
+174    // Fetch data function
+175    const fetchData = async () => {
+176      setLoading(true);
+177      try {
+178        // Fetch users and roles
+179        const [usersResult, rolesResult] = await Promise.all([
+180          getAllUsers(),
+181          getAllRoles(),
+182        ]);
+183  
+184        if (usersResult.error) {
+185          message.error("Failed to fetch users");
+186          return;
+187        }
+188  
+189        if (rolesResult.error) {
+190          message.error("Failed to fetch roles");
+191          return;
+192        }
+193  
+194        const usersData = usersResult.data || [];
+195        const rolesData = rolesResult.data || [];
+196  
+197        // Fetch role assignments for each user
+198        const usersWithRoles = await Promise.all(
+199          usersData.map(async (user) => {
+200            const { data: assignments } = await getUserRoleAssignments(user.id);
+201            const userRoles = rolesData.filter((role) =>
+202              assignments?.some(
+203                (assignment) => assignment.role_id === role.role_id
+204              )
+205            );
+206            return { ...user, roles: userRoles };
+207          })
+208        );
+209  
+210        setUsers(usersWithRoles);
+211        setRoles(rolesData);
+212      } catch (error) {
+213        message.error("Failed to fetch data");
+214      } finally {
+215        setLoading(false);
+216      }
+217    };
+218  
+219    // Fetch data on mount and when admin status changes
+220    useEffect(() => {
+221      if (isAdmin && !adminLoading) {
+222        fetchData();
+223      }
+224    }, [isAdmin, adminLoading]);
+225  
+226    // Handle role assignment
+227    const handleAssignRole = async (values: { roleId: string }) => {
+228      if (!selectedUser) return;
+229  
+230      try {
+231        const { error } = await assignRole(selectedUser.id, values.roleId);
+232        if (error) {
+233          message.error("Failed to assign role");
+234        } else {
+235          message.success("Role assigned successfully");
+236          setModalVisible(false);
+237          form.resetFields();
+238          fetchData();
+239        }
+240      } catch (error) {
+241        message.error("Failed to assign role");
+242      }
+243    };
+244  
+245    // Handle role removal
+246    const handleRemoveRole = async (userId: string, roleId: string) => {
+247      try {
+248        const { error } = await removeRole(userId, roleId);
+249        if (error) {
+250          message.error("Failed to remove role");
+251        } else {
+252          message.success("Role removed successfully");
+253          fetchData();
+254        }
+255      } catch (error) {
+256        message.error("Failed to remove role");
+257      }
+258    };
+259  
+260    // Handle create role
+261    const handleCreateRole = async (values: { roleName: string }) => {
+262      try {
+263        const { error } = await createRole(values.roleName);
+264        if (error) {
+265          message.error("Failed to create role");
+266        } else {
+267          message.success("Role created successfully");
+268          setRoleModalVisible(false);
+269          roleForm.resetFields();
+270          fetchData();
+271        }
+272      } catch (error) {
+273        message.error("Failed to create role");
+274      }
+275    };
+276  
+277    // Handle delete role
+278    const handleDeleteRole = async (roleId: string) => {
+279      try {
+280        const { error } = await deleteRole(roleId);
+281        if (error) {
+282          message.error("Failed to delete role");
+283        } else {
+284          message.success("Role deleted successfully");
+285          fetchData();
+286        }
+287      } catch (error) {
+288        message.error("Failed to delete role");
+289      }
+290    };
+291  
+292    // Handle delete user
+293    const handleDeleteUser = async (userId: string) => {
+294      try {
+295        const { error } = await deleteUser(userId);
+296        if (error) {
+297          message.error("Failed to delete user");
+298        } else {
+299          message.success("User deleted successfully");
+300          fetchData();
+301        }
+302      } catch (error) {
+303        message.error("Failed to delete user");
+304      }
+305    };
+306  
+307    // Handle delete user health metrics
+308    const handleDeleteUserHealthMetrics = async (userId: string) => {
+309      try {
+310        const { error } = await deleteUserHealthMetrics(userId);
+311        if (error) {
+312          message.error("Failed to delete user health metrics");
+313        } else {
+314          message.success("User health metrics deleted successfully");
+315        }
+316      } catch (error) {
+317        message.error("Failed to delete user health metrics");
+318      }
+319    };
+320  
+321    // Get available roles for user
+322    const getAvailableRoles = (user: UserWithRoles) => {
+323      const userRoleIds = user.roles.map((role) => role.role_id);
+324      return roles.filter((role) => !userRoleIds.includes(role.role_id));
+325    };
+326  
+327    // User table columns
+328    const userColumns = [
+329      {
+330        title: "Username",
+331        dataIndex: "username",
+332        key: "username",
+333        render: (username: string, record: UserWithRoles) => (
+334          <Space>
+335            <UserOutlined />
+336            <span>{username}</span>
+337            {record.is_premium && <Tag color="gold">Premium</Tag>}
+338          </Space>
+339        ),
+340      },
+341      {
+342        title: "Email",
+343        dataIndex: "email",
+344        key: "email",
+345      },
+346      {
+347        title: "Roles",
+348        key: "roles",
+349        render: (_: any, record: UserWithRoles) => (
+350          <Space wrap>
+351            {record.roles.map((role) => (
+352              <Tag
+353                key={role.role_id}
+354                color={role.role_name.toLowerCase() === "admin" ? "red" : "blue"}
+355                closable
+356                onClose={() => handleRemoveRole(record.id, role.role_id)}
+357              >
+358                {role.role_name}
+359              </Tag>
+360            ))}
+361          </Space>
+362        ),
+363      },
+364      {
+365        title: "Created",
+366        dataIndex: "created_at",
+367        key: "created_at",
+368        render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
+369      },
+370      {
+371        title: "Actions",
+372        key: "actions",
+373        render: (_: any, record: UserWithRoles) => (
+374          <Space>
+375            <Button
+376              type="primary"
+377              size="small"
+378              icon={<PlusOutlined />}
+379              onClick={() => {
+380                setSelectedUser(record);
+381                setModalVisible(true);
+382              }}
+383              disabled={getAvailableRoles(record).length === 0}
+384            >
+385              Assign Role
+386            </Button>
+387            <Popconfirm
+388              title="Delete Health Metrics"
+389              description="Are you sure you want to delete all health metrics for this user?"
+390              onConfirm={() => handleDeleteUserHealthMetrics(record.id)}
+391              okText="Yes"
+392              cancelText="No"
+393            >
+394              <Button size="small" danger>
+395                Delete Metrics
+396              </Button>
+397            </Popconfirm>
+398            <Popconfirm
+399              title="Delete User"
+400              description="Are you sure you want to delete this user and all their data?"
+401              onConfirm={() => handleDeleteUser(record.id)}
+402              okText="Yes"
+403              cancelText="No"
+404            >
+405              <Button size="small" danger icon={<DeleteOutlined />}>
+406                Delete User
+407              </Button>
+408            </Popconfirm>
+409          </Space>
+410        ),
+411      },
+412    ];
+413  
+414    // Role table columns
+415    const roleColumns = [
+416      {
+417        title: "Role Name",
+418        dataIndex: "role_name",
+419        key: "role_name",
+420        render: (roleName: string) => (
+421          <Space>
+422            <CrownOutlined />
+423            <span>{roleName}</span>
+424          </Space>
+425        ),
+426      },
+427      {
+428        title: "Users Count",
+429        key: "users_count",
+430        render: (_: any, record: Tables<"user_roles">) => {
+431          const count = users.filter((user) =>
+432            user.roles.some((role) => role.role_id === record.role_id)
+433          ).length;
+434          return <Tag color="blue">{count} users</Tag>;
+435        },
+436      },
+437      {
+438        title: "Actions",
+439        key: "actions",
+440        render: (_: any, record: Tables<"user_roles">) => (
+441          <Popconfirm
+442            title="Delete Role"
+443            description="Are you sure you want to delete this role? This will remove it from all users."
+444            onConfirm={() => handleDeleteRole(record.role_id)}
+445            okText="Yes"
+446            cancelText="No"
+447          >
+448            <Button size="small" danger icon={<DeleteOutlined />}>
+449              Delete
+450            </Button>
+451          </Popconfirm>
+452        ),
+453      },
+454    ];
+455  
+456    if (adminLoading) {
+457      return (
+458        <div style={{ padding: 24, textAlign: "center" }}>
+459          <Text>Loading admin panel...</Text>
+460        </div>
+461      );
+462    }
+463  
+464    if (!isAdmin) {
+465      return (
+466        <div style={{ padding: 24, textAlign: "center" }}>
+467          <Alert
+468            message="Access Denied"
+469            description="You don't have permission to access this page."
+470            type="error"
+471            showIcon
+472          />
+473        </div>
+474      );
+475    }
+476  
+477    return (
+478      <div style={{ padding: 24 }}>
+479        <div
+480          style={{
+481            marginBottom: 24,
+482            display: "flex",
+483            justifyContent: "space-between",
+484            alignItems: "center",
+485          }}
+486        >
+487          <Title level={2}>Role Management Dashboard</Title>
+488          <Button
+489            type="primary"
+490            icon={<PlusOutlined />}
+491            onClick={() => setRoleModalVisible(true)}
+492          >
+493            Create Role
+494          </Button>
+495        </div>
+496  
+497        {/* Statistics */}
+498        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+499          <Col xs={24} sm={12} lg={6}>
+500            <Card>
+501              <Statistic
+502                title="Total Users"
+503                value={users.length}
+504                prefix={<TeamOutlined />}
+505              />
+506            </Card>
+507          </Col>
+508          <Col xs={24} sm={12} lg={6}>
+509            <Card>
+510              <Statistic
+511                title="Total Roles"
+512                value={roles.length}
+513                prefix={<CrownOutlined />}
+514              />
+515            </Card>
+516          </Col>
+517          <Col xs={24} sm={12} lg={6}>
+518            <Card>
+519              <Statistic
+520                title="Admin Users"
+521                value={
+522                  users.filter((user) =>
+523                    user.roles.some((role) =>
+524                      role.role_name.toLowerCase().includes("admin")
+525                    )
+526                  ).length
+527                }
+528                prefix={<SettingOutlined />}
+529              />
+530            </Card>
+531          </Col>
+532          <Col xs={24} sm={12} lg={6}>
+533            <Card>
+534              <Statistic
+535                title="Premium Users"
+536                value={users.filter((user) => user.is_premium).length}
+537                prefix={<TrophyOutlined />}
+538              />
+539            </Card>
+540          </Col>
+541        </Row>
+542  
+543        {/* Analytics Dashboard */}
+544        <Tabs defaultActiveKey="1" style={{ marginBottom: 24 }}>
+545          <TabPane
+546            tab={
+547              <span>
+548                <BarChartOutlined />
+549                Overview
+550              </span>
+551            }
+552            key="1"
+553          >
+554            <Row gutter={[16, 16]}>
+555              {/* User Registration Trends */}
+556              <Col xs={24} lg={12}>
+557                <Card
+558                  title="User Registration Trends (Last 12 Months)"
+559                  extra={<LineChartOutlined />}
+560                >
+561                  <ResponsiveContainer width="100%" height={300}>
+562                    <AreaChart data={getUserRegistrationTrends()}>
+563                      <CartesianGrid strokeDasharray="3 3" />
+564                      <XAxis dataKey="month" />
+565                      <YAxis />
+566                      <Tooltip />
+567                      <Legend />
+568                      <Area
+569                        type="monotone"
+570                        dataKey="users"
+571                        stackId="1"
+572                        stroke="#8884d8"
+573                        fill="#8884d8"
+574                        name="Total Users"
+575                      />
+576                      <Area
+577                        type="monotone"
+578                        dataKey="premium"
+579                        stackId="1"
+580                        stroke="#82ca9d"
+581                        fill="#82ca9d"
+582                        name="Premium Users"
+583                      />
+584                    </AreaChart>
+585                  </ResponsiveContainer>
+586                </Card>
+587              </Col>
+588  
+589              {/* Role Distribution */}
+590              <Col xs={24} lg={12}>
+591                <Card title="Role Distribution" extra={<PieChartOutlined />}>
+592                  <ResponsiveContainer width="100%" height={300}>
+593                    <PieChart>
+594                      <Pie
+595                        data={getRoleDistribution()}
+596                        cx="50%"
+597                        cy="50%"
+598                        labelLine={false}
+599                        label={({ name, percent }) =>
+600                          `${name} ${(percent * 100).toFixed(0)}%`
+601                        }
+602                        outerRadius={80}
+603                        fill="#8884d8"
+604                        dataKey="value"
+605                      >
+606                        {getRoleDistribution().map((entry, index) => (
+607                          <Cell key={`cell-${index}`} fill={entry.color} />
+608                        ))}
+609                      </Pie>
+610                      <Tooltip />
+611                    </PieChart>
+612                  </ResponsiveContainer>
+613                </Card>
+614              </Col>
+615  
+616              {/* Weekly User Activity */}
+617              <Col xs={24} lg={12}>
+618                <Card title="New Users This Week" extra={<BarChartOutlined />}>
+619                  <ResponsiveContainer width="100%" height={300}>
+620                    <BarChart data={getWeeklyUserActivity()}>
+621                      <CartesianGrid strokeDasharray="3 3" />
+622                      <XAxis dataKey="day" />
+623                      <YAxis />
+624                      <Tooltip />
+625                      <Bar dataKey="newUsers" fill="#8884d8" name="New Users" />
+626                    </BarChart>
+627                  </ResponsiveContainer>
+628                </Card>
+629              </Col>
+630  
+631              {/* User Type Distribution */}
+632              <Col xs={24} lg={12}>
+633                <Card title="Premium vs Regular Users">
+634                  <Row gutter={16}>
+635                    <Col span={12}>
+636                      <ResponsiveContainer width="100%" height={200}>
+637                        <PieChart>
+638                          <Pie
+639                            data={getUserTypeDistribution()}
+640                            cx="50%"
+641                            cy="50%"
+642                            innerRadius={40}
+643                            outerRadius={80}
+644                            paddingAngle={5}
+645                            dataKey="value"
+646                          >
+647                            {getUserTypeDistribution().map((entry, index) => (
+648                              <Cell key={`cell-${index}`} fill={entry.color} />
+649                            ))}
+650                          </Pie>
+651                          <Tooltip />
+652                        </PieChart>
+653                      </ResponsiveContainer>
+654                    </Col>
+655                    <Col span={12}>
+656                      <div style={{ padding: "20px 0" }}>
+657                        {getUserTypeDistribution().map((item, index) => (
+658                          <div key={index} style={{ marginBottom: 16 }}>
+659                            <div
+660                              style={{
+661                                display: "flex",
+662                                alignItems: "center",
+663                                marginBottom: 8,
+664                              }}
+665                            >
+666                              <div
+667                                style={{
+668                                  width: 12,
+669                                  height: 12,
+670                                  backgroundColor: item.color,
+671                                  marginRight: 8,
+672                                  borderRadius: 2,
+673                                }}
+674                              />
+675                              <Text strong>{item.name}</Text>
+676                            </div>
+677                            <Progress
+678                              percent={
+679                                users.length > 0
+680                                  ? (item.value / users.length) * 100
+681                                  : 0
+682                              }
+683                              strokeColor={item.color}
+684                              showInfo={false}
+685                            />
+686                            <Text type="secondary">{item.value} users</Text>
+687                          </div>
+688                        ))}
+689                      </div>
+690                    </Col>
+691                  </Row>
+692                </Card>
+693              </Col>
+694            </Row>
+695          </TabPane>
+696  
+697          <TabPane
+698            tab={
+699              <span>
+700                <PieChartOutlined />
+701                Role Analytics
+702              </span>
+703            }
+704            key="2"
+705          >
+706            <Row gutter={[16, 16]}>
+707              {/* Role Growth Radial Chart */}
+708              <Col xs={24} lg={12}>
+709                <Card title="Role Distribution (Radial View)">
+710                  <ResponsiveContainer width="100%" height={400}>
+711                    <RadialBarChart
+712                      cx="50%"
+713                      cy="50%"
+714                      innerRadius="10%"
+715                      outerRadius="80%"
+716                      data={getRoleGrowthData()}
+717                    >
+718                      <RadialBar
+719                        label={{ position: "insideStart", fill: "#fff" }}
+720                        background
+721                        dataKey="percentage"
+722                      />
+723                      <Legend
+724                        iconSize={10}
+725                        layout="vertical"
+726                        verticalAlign="middle"
+727                        align="right"
+728                      />
+729                      <Tooltip />
+730                    </RadialBarChart>
+731                  </ResponsiveContainer>
+732                </Card>
+733              </Col>
+734  
+735              {/* Role Statistics */}
+736              <Col xs={24} lg={12}>
+737                <Card title="Role Statistics">
+738                  <div style={{ padding: 16 }}>
+739                    {roles.map((role, index) => {
+740                      const userCount = users.filter((user) =>
+741                        user.roles.some(
+742                          (userRole) => userRole.role_id === role.role_id
+743                        )
+744                      ).length;
+745                      const percentage =
+746                        users.length > 0 ? (userCount / users.length) * 100 : 0;
+747  
+748                      return (
+749                        <div key={role.role_id} style={{ marginBottom: 24 }}>
+750                          <div
+751                            style={{
+752                              display: "flex",
+753                              justifyContent: "space-between",
+754                              alignItems: "center",
+755                              marginBottom: 8,
+756                            }}
+757                          >
+758                            <Text strong>{role.role_name}</Text>
+759                            <Text>
+760                              {userCount} users ({percentage.toFixed(1)}%)
+761                            </Text>
+762                          </div>
+763                          <Progress
+764                            percent={percentage}
+765                            strokeColor={COLORS[index % COLORS.length]}
+766                            showInfo={false}
+767                          />
+768                        </div>
+769                      );
+770                    })}
+771                  </div>
+772                </Card>
+773              </Col>
+774  
+775              {/* Monthly Growth Comparison */}
+776              <Col xs={24}>
+777                <Card title="User Growth Comparison">
+778                  <ResponsiveContainer width="100%" height={300}>
+779                    <LineChart data={getUserRegistrationTrends()}>
+780                      <CartesianGrid strokeDasharray="3 3" />
+781                      <XAxis dataKey="month" />
+782                      <YAxis />
+783                      <Tooltip />
+784                      <Legend />
+785                      <Line
+786                        type="monotone"
+787                        dataKey="users"
+788                        stroke="#8884d8"
+789                        strokeWidth={3}
+790                        dot={{ r: 6 }}
+791                        name="Total Users"
+792                      />
+793                      <Line
+794                        type="monotone"
+795                        dataKey="premium"
+796                        stroke="#82ca9d"
+797                        strokeWidth={3}
+798                        dot={{ r: 6 }}
+799                        name="Premium Users"
+800                      />
+801                    </LineChart>
+802                  </ResponsiveContainer>
+803                </Card>
+804              </Col>
+805            </Row>
+806          </TabPane>
+807        </Tabs>
+808  
+809        {/* Users Table */}
+810        <Card title="Users" style={{ marginBottom: 24 }}>
+811          <Table
+812            dataSource={users}
+813            columns={userColumns}
+814            rowKey="id"
+815            loading={loading}
+816            pagination={{
+817              pageSize: 10,
+818              showSizeChanger: true,
+819              showQuickJumper: true,
+820              showTotal: (total, range) =>
+821                `${range[0]}-${range[1]} of ${total} items`,
+822            }}
+823          />
+824        </Card>
+825  
+826        {/* Roles Table */}
+827        <Card title="Roles">
+828          <Table
+829            dataSource={roles}
+830            columns={roleColumns}
+831            rowKey="role_id"
+832            loading={loading}
+833            pagination={{
+834              pageSize: 10,
+835              showSizeChanger: true,
+836              showQuickJumper: true,
+837              showTotal: (total, range) =>
+838                `${range[0]}-${range[1]} of ${total} items`,
+839            }}
+840          />
+841        </Card>
+842  
+843        {/* Assign Role Modal */}
+844        <Modal
+845          title="Assign Role"
+846          open={modalVisible}
+847          onCancel={() => {
+848            setModalVisible(false);
+849            form.resetFields();
+850          }}
+851          footer={null}
+852        >
+853          <Form form={form} onFinish={handleAssignRole} layout="vertical">
+854            <Form.Item
+855              name="roleId"
+856              label="Select Role"
+857              rules={[{ required: true, message: "Please select a role" }]}
+858            >
+859              <Select placeholder="Select a role">
+860                {selectedUser &&
+861                  getAvailableRoles(
+862                    users.find((u) => u.id === selectedUser.id) as UserWithRoles
+863                  ).map((role) => (
+864                    <Option key={role.role_id} value={role.role_id}>
+865                      {role.role_name}
+866                    </Option>
+867                  ))}
+868              </Select>
+869            </Form.Item>
+870            <Form.Item>
+871              <Space>
+872                <Button type="primary" htmlType="submit">
+873                  Assign Role
+874                </Button>
+875                <Button
+876                  onClick={() => {
+877                    setModalVisible(false);
+878                    form.resetFields();
+879                  }}
+880                >
+881                  Cancel
+882                </Button>
+883              </Space>
+884            </Form.Item>
+885          </Form>
+886        </Modal>
+887  
+888        {/* Create Role Modal */}
+889        <Modal
+890          title="Create New Role"
+891          open={roleModalVisible}
+892          onCancel={() => {
+893            setRoleModalVisible(false);
+894            roleForm.resetFields();
+895          }}
+896          footer={null}
+897        >
+898          <Form form={roleForm} onFinish={handleCreateRole} layout="vertical">
+899            <Form.Item
+900              name="roleName"
+901              label="Role Name"
+902              rules={[
+903                { required: true, message: "Please enter a role name" },
+904                { min: 2, message: "Role name must be at least 2 characters" },
+905              ]}
+906            >
+907              <Input placeholder="Enter role name (e.g., Admin, Moderator)" />
+908            </Form.Item>
+909            <Form.Item>
+910              <Space>
+911                <Button type="primary" htmlType="submit">
+912                  Create Role
+913                </Button>
+914                <Button
+915                  onClick={() => {
+916                    setRoleModalVisible(false);
+917                    roleForm.resetFields();
+918                  }}
+919                >
+920                  Cancel
+921                </Button>
+922              </Space>
+923            </Form.Item>
+924          </Form>
+925        </Modal>
+926      </div>
+927    );
+928  };
+929  
+930  export default RoleManagementPage;
+
+
+
+
+В.4 LoginScreen.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/auth/LoginScreen.tsx
+1  import React, { useState } from "react";
+2  import {
+3    Form,
+4    Input,
+5    Button,
+6    Card,
+7    Typography,
+8    Alert,
+9    Space,
+10    Divider,
+11  } from "antd";
+12  import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
+13  import { useAuth } from "../../hooks/useAuth";
+14  
+15  const { Title, Text, Link } = Typography;
+16  
+17  interface LoginScreenProps {
+18    onSwitchToSignUp: () => void;
+19    onSwitchToForgotPassword: () => void;
+20  }
+21  
+22  interface LoginFormData {
+23    email: string;
+24    password: string;
+25  }
+26  
+27  const LoginScreen: React.FC<LoginScreenProps> = ({
+28    onSwitchToSignUp,
+29    onSwitchToForgotPassword,
+30  }) => {
+31    const { signIn } = useAuth();
+32    const [form] = Form.useForm();
+33    const [loading, setLoading] = useState(false);
+34    const [error, setError] = useState<string | null>(null);
+35  
+36    const handleSubmit = async (values: LoginFormData) => {
+37      setLoading(true);
+38      setError(null);
+39  
+40      try {
+41        const { user, error: authError } = await signIn({
+42          email: values.email,
+43          password: values.password,
+44        });
+45  
+46        if (authError) {
+47          setError(authError.message);
+48        } else if (user) {
+49          // Success - user will be redirected by the auth state change
+50          console.log("Login successful");
+51        }
+52      } catch (err) {
+53        setError("An unexpected error occurred");
+54      } finally {
+55        setLoading(false);
+56      }
+57    };
+58  
+59    return (
+60      <div
+61        style={{
+62          minHeight: "100vh",
+63          display: "flex",
+64          alignItems: "center",
+65          justifyContent: "center",
+66          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+67          padding: "20px",
+68        }}
+69      >
+70        <Card
+71          style={{
+72            width: "100%",
+73            maxWidth: 400,
+74            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+75            borderRadius: "16px",
+76          }}
+77          bodyStyle={{ padding: "40px" }}
+78        >
+79          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+80            {/* Header */}
+81            <div style={{ textAlign: "center" }}>
+82              <Title level={2} style={{ marginBottom: 8, color: "#1890ff" }}>
+83                Welcome Back
+84              </Title>
+85              <Text type="secondary">Sign in to your account</Text>
+86            </div>
+87  
+88            {/* Error Alert */}
+89            {error && (
+90              <Alert
+91                message="Login Failed"
+92                description={error}
+93                type="error"
+94                showIcon
+95                closable
+96                onClose={() => setError(null)}
+97              />
+98            )}
+99  
+100            {/* Login Form */}
+101            <Form
+102              form={form}
+103              name="login"
+104              onFinish={handleSubmit}
+105              layout="vertical"
+106              size="large"
+107              autoComplete="off"
+108            >
+109              <Form.Item
+110                name="email"
+111                label="Email"
+112                rules={[
+113                  { required: true, message: "Please input your email!" },
+114                  { type: "email", message: "Please enter a valid email!" },
+115                ]}
+116              >
+117                <Input
+118                  prefix={<MailOutlined />}
+119                  placeholder="Enter your email"
+120                  autoComplete="email"
+121                />
+122              </Form.Item>
+123  
+124              <Form.Item
+125                name="password"
+126                label="Password"
+127                rules={[
+128                  { required: true, message: "Please input your password!" },
+129                  { min: 6, message: "Password must be at least 6 characters!" },
+130                ]}
+131              >
+132                <Input.Password
+133                  prefix={<LockOutlined />}
+134                  placeholder="Enter your password"
+135                  autoComplete="current-password"
+136                />
+137              </Form.Item>
+138  
+139              <Form.Item style={{ marginBottom: 16 }}>
+140                <Button
+141                  type="primary"
+142                  htmlType="submit"
+143                  loading={loading}
+144                  block
+145                  style={{
+146                    height: 48,
+147                    fontSize: 16,
+148                    borderRadius: 8,
+149                  }}
+150                >
+151                  {loading ? "Signing In..." : "Sign In"}
+152                </Button>
+153              </Form.Item>
+154            </Form>
+155  
+156            {/* Forgot Password Link */}
+157            <div style={{ textAlign: "center" }}>
+158              <Link onClick={onSwitchToForgotPassword}>
+159                Forgot your password?
+160              </Link>
+161            </div>
+162  
+163            <Divider>
+164              <Text type="secondary">New to our platform?</Text>
+165            </Divider>
+166  
+167            {/* Sign Up Link */}
+168            <Button
+169              type="default"
+170              block
+171              size="large"
+172              onClick={onSwitchToSignUp}
+173              style={{
+174                height: 48,
+175                fontSize: 16,
+176                borderRadius: 8,
+177                borderColor: "#1890ff",
+178                color: "#1890ff",
+179              }}
+180            >
+181              Create Account
+182            </Button>
+183          </Space>
+184        </Card>
+185      </div>
+186    );
+187  };
+188  
+189  export default LoginScreen;
+
+
+В.5 SignUpScreen.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/auth/SignUpScreen.tsx
+1  import React, { useState } from "react";
+2  import {
+3    Form,
+4    Input,
+5    Button,
+6    Card,
+7    Typography,
+8    Alert,
+9    Space,
+10    Divider,
+11    Progress,
+12  } from "antd";
+13  import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
+14  import { useAuth } from "../../hooks/useAuth";
+15  
+16  const { Title, Text, Link } = Typography;
+17  
+18  interface SignUpScreenProps {
+19    onSwitchToLogin: () => void;
+20  }
+21  
+22  interface SignUpFormData {
+23    email: string;
+24    username: string;
+25    password: string;
+26    confirmPassword: string;
+27  }
+28  
+29  const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSwitchToLogin }) => {
+30    const { signUp } = useAuth();
+31    const [form] = Form.useForm();
+32    const [loading, setLoading] = useState(false);
+33    const [error, setError] = useState<string | null>(null);
+34    const [success, setSuccess] = useState(false);
+35  
+36    // Password strength calculation
+37    const getPasswordStrength = (password: string): number => {
+38      let strength = 0;
+39      if (password.length >= 8) strength += 25;
+40      if (/[a-z]/.test(password)) strength += 25;
+41      if (/[A-Z]/.test(password)) strength += 25;
+42      if (/[0-9]/.test(password)) strength += 25;
+43      return strength;
+44    };
+45  
+46    const getPasswordStrengthColor = (strength: number): string => {
+47      if (strength < 50) return "#ff4d4f";
+48      if (strength < 75) return "#faad14";
+49      return "#52c41a";
+50    };
+51  
+52    const getPasswordStrengthText = (strength: number): string => {
+53      if (strength < 25) return "Very Weak";
+54      if (strength < 50) return "Weak";
+55      if (strength < 75) return "Good";
+56      return "Strong";
+57    };
+58  
+59    const handleSubmit = async (values: SignUpFormData) => {
+60      setLoading(true);
+61      setError(null);
+62  
+63      try {
+64        const { user, error: authError } = await signUp({
+65          email: values.email,
+66          password: values.password,
+67          username: values.username,
+68        });
+69  
+70        if (authError) {
+71          setError(authError.message);
+72        } else if (user) {
+73          setSuccess(true);
+74          form.resetFields();
+75        }
+76      } catch (err) {
+77        setError("An unexpected error occurred");
+78      } finally {
+79        setLoading(false);
+80      }
+81    };
+82  
+83    const passwordValue = Form.useWatch("password", form) || "";
+84    const passwordStrength = getPasswordStrength(passwordValue);
+85  
+86    if (success) {
+87      return (
+88        <div
+89          style={{
+90            minHeight: "100vh",
+91            display: "flex",
+92            alignItems: "center",
+93            justifyContent: "center",
+94            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+95            padding: "20px",
+96          }}
+97        >
+98          <Card
+99            style={{
+100              width: "100%",
+101              maxWidth: 400,
+102              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+103              borderRadius: "16px",
+104              textAlign: "center",
+105            }}
+106            bodyStyle={{ padding: "40px" }}
+107          >
+108            <Space direction="vertical" size="large" style={{ width: "100%" }}>
+109              <div>
+110                <Title level={2} style={{ color: "#52c41a" }}>
+111                  Account Created!
+112                </Title>
+113                <Text type="secondary">
+114                  Please check your email to verify your account before signing
+115                  in.
+116                </Text>
+117              </div>
+118              <Button
+119                type="primary"
+120                size="large"
+121                block
+122                onClick={onSwitchToLogin}
+123                style={{
+124                  height: 48,
+125                  fontSize: 16,
+126                  borderRadius: 8,
+127                }}
+128              >
+129                Go to Sign In
+130              </Button>
+131            </Space>
+132          </Card>
+133        </div>
+134      );
+135    }
+136  
+137    return (
+138      <div
+139        style={{
+140          minHeight: "100vh",
+141          display: "flex",
+142          alignItems: "center",
+143          justifyContent: "center",
+144          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+145          padding: "20px",
+146        }}
+147      >
+148        <Card
+149          style={{
+150            width: "100%",
+151            maxWidth: 400,
+152            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+153            borderRadius: "16px",
+154          }}
+155          bodyStyle={{ padding: "40px" }}
+156        >
+157          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+158            {/* Header */}
+159            <div style={{ textAlign: "center" }}>
+160              <Title level={2} style={{ marginBottom: 8, color: "#1890ff" }}>
+161                Create Account
+162              </Title>
+163              <Text type="secondary">Join us today</Text>
+164            </div>
+165  
+166            {/* Error Alert */}
+167            {error && (
+168              <Alert
+169                message="Sign Up Failed"
+170                description={error}
+171                type="error"
+172                showIcon
+173                closable
+174                onClose={() => setError(null)}
+175              />
+176            )}
+177  
+178            {/* Sign Up Form */}
+179            <Form
+180              form={form}
+181              name="signup"
+182              onFinish={handleSubmit}
+183              layout="vertical"
+184              size="large"
+185              autoComplete="off"
+186            >
+187              <Form.Item
+188                name="email"
+189                label="Email"
+190                rules={[
+191                  { required: true, message: "Please input your email!" },
+192                  { type: "email", message: "Please enter a valid email!" },
+193                ]}
+194              >
+195                <Input
+196                  prefix={<MailOutlined />}
+197                  placeholder="Enter your email"
+198                  autoComplete="email"
+199                />
+200              </Form.Item>
+201  
+202              <Form.Item
+203                name="username"
+204                label="Username"
+205                rules={[
+206                  { required: true, message: "Please input your username!" },
+207                  {
+208                    min: 3,
+209                    message: "Username must be at least 3 characters!",
+210                  },
+211                  {
+212                    max: 20,
+213                    message: "Username must be less than 20 characters!",
+214                  },
+215                  {
+216                    pattern: /^[a-zA-Z0-9_]+$/,
+217                    message:
+218                      "Username can only contain letters, numbers, and underscores!",
+219                  },
+220                ]}
+221              >
+222                <Input
+223                  prefix={<UserOutlined />}
+224                  placeholder="Choose a username"
+225                  autoComplete="username"
+226                />
+227              </Form.Item>
+228  
+229              <Form.Item
+230                name="password"
+231                label="Password"
+232                rules={[
+233                  { required: true, message: "Please input your password!" },
+234                  { min: 8, message: "Password must be at least 8 characters!" },
+235                ]}
+236              >
+237                <Input.Password
+238                  prefix={<LockOutlined />}
+239                  placeholder="Create a password"
+240                  autoComplete="new-password"
+241                />
+242              </Form.Item>
+243  
+244              {/* Password Strength Indicator */}
+245              {passwordValue && (
+246                <div style={{ marginBottom: 16 }}>
+247                  <div
+248                    style={{
+249                      display: "flex",
+250                      justifyContent: "space-between",
+251                      marginBottom: 4,
+252                    }}
+253                  >
+254                    <Text type="secondary" style={{ fontSize: 12 }}>
+255                      Password Strength
+256                    </Text>
+257                    <Text
+258                      style={{
+259                        fontSize: 12,
+260                        color: getPasswordStrengthColor(passwordStrength),
+261                      }}
+262                    >
+263                      {getPasswordStrengthText(passwordStrength)}
+264                    </Text>
+265                  </div>
+266                  <Progress
+267                    percent={passwordStrength}
+268                    showInfo={false}
+269                    strokeColor={getPasswordStrengthColor(passwordStrength)}
+270                    size="small"
+271                  />
+272                </div>
+273              )}
+274  
+275              <Form.Item
+276                name="confirmPassword"
+277                label="Confirm Password"
+278                dependencies={["password"]}
+279                rules={[
+280                  { required: true, message: "Please confirm your password!" },
+281                  ({ getFieldValue }) => ({
+282                    validator(_, value) {
+283                      if (!value || getFieldValue("password") === value) {
+284                        return Promise.resolve();
+285                      }
+286                      return Promise.reject(
+287                        new Error("The passwords do not match!")
+288                      );
+289                    },
+290                  }),
+291                ]}
+292              >
+293                <Input.Password
+294                  prefix={<LockOutlined />}
+295                  placeholder="Confirm your password"
+296                  autoComplete="new-password"
+297                />
+298              </Form.Item>
+299  
+300              <Form.Item style={{ marginBottom: 16 }}>
+301                <Button
+302                  type="primary"
+303                  htmlType="submit"
+304                  loading={loading}
+305                  block
+306                  style={{
+307                    height: 48,
+308                    fontSize: 16,
+309                    borderRadius: 8,
+310                  }}
+311                >
+312                  {loading ? "Creating Account..." : "Create Account"}
+313                </Button>
+314              </Form.Item>
+315            </Form>
+316  
+317            <Divider>
+318              <Text type="secondary">Already have an account?</Text>
+319            </Divider>
+320  
+321            {/* Sign In Link */}
+322            <Button
+323              type="default"
+324              block
+325              size="large"
+326              onClick={onSwitchToLogin}
+327              style={{
+328                height: 48,
+329                fontSize: 16,
+330                borderRadius: 8,
+331                borderColor: "#1890ff",
+332                color: "#1890ff",
+333              }}
+334            >
+335              Sign In
+336            </Button>
+337          </Space>
+338        </Card>
+339      </div>
+340    );
+341  };
+342  
+343  export default SignUpScreen;
+
+
+
+
+В.6 DashboardScreen.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/dashboard/DashboardScreen.tsx
+1  import React, { useState, useEffect } from "react";
+2  import {
+3    Layout,
+4    Menu,
+5    Avatar,
+6    Dropdown,
+7    Typography,
+8    Card,
+9    Row,
+10    Col,
+11    Statistic,
+12    Button,
+13    Space,
+14    Progress,
+15    List,
+16    Tag,
+17  } from "antd";
+18  import {
+19    UserOutlined,
+20    DashboardOutlined,
+21    HeartOutlined,
+22    BellOutlined,
+23    FileTextOutlined,
+24    SettingOutlined,
+25    LogoutOutlined,
+26    TrophyOutlined,
+27    FireOutlined,
+28    ThunderboltOutlined,
+29    StepForwardOutlined,
+30    CrownOutlined,
+31    DatabaseOutlined,
+32  } from "@ant-design/icons";
+33  import { useAuth } from "../../hooks/useAuth";
+34  import { useAdmin } from "../../hooks/useAdmin";
+35  import { supabase } from "../../lib/supabase";
+36  import type { Tables } from "../../types/supabase";
+37  import ProfilePage from "../profile/ProfilePage";
+38  import HealthMetricsPage from "../health/HealthMetricsPage";
+39  import ReportsPage from "../reports/ReportsPage";
+40  import NotificationsPopup from "../notifications/NotificationsPopup";
+41  import NotificationsPage from "../notifications/NotificationsPage";
+42  import RoleManagementPage from "../admin/RoleManagementPage";
+43  import DatabaseManagementPage from "../admin/DatabaseManagementPage";
+44  
+45  const { Header, Sider, Content } = Layout;
+46  const { Title, Text } = Typography;
+47  
+48  interface DashboardScreenProps {}
+49  
+50  const DashboardScreen: React.FC<DashboardScreenProps> = () => {
+51    const { user, signOut } = useAuth();
+52    const { isAdmin, isDataAnalyst, loading: adminLoading } = useAdmin();
+53    const [collapsed, setCollapsed] = useState(false);
+54    const [selectedKey, setSelectedKey] = useState("dashboard");
+55    const [userProfile, setUserProfile] = useState<Tables<"users"> | null>(null);
+56    const [healthMetrics, setHealthMetrics] = useState<
+57      Tables<"health_metrics">[]
+58    >([]);
+59    const [notifications, setNotifications] = useState<Tables<"notifications">[]>(
+60      []
+61    );
+62    const [loading, setLoading] = useState(true);
+63  
+64    // Fetch user data
+65    useEffect(() => {
+66      const fetchUserData = async () => {
+67        if (!user) return;
+68  
+69        try {
+70          // Fetch user profile
+71          const { data: profile } = await supabase
+72            .from("users")
+73            .select("*")
+74            .eq("auth_id", user.id)
+75            .single();
+76  
+77          if (profile) {
+78            setUserProfile(profile);
+79  
+80            // Fetch recent health metrics
+81            const { data: metrics } = await supabase
+82              .from("health_metrics")
+83              .select("*")
+84              .eq("user_id", profile.id)
+85              .order("date", { ascending: false })
+86              .limit(7);
+87  
+88            setHealthMetrics(metrics || []);
+89  
+90            // Fetch recent notifications
+91            const { data: notifs } = await supabase
+92              .from("notifications")
+93              .select("*")
+94              .eq("user_id", profile.id)
+95              .order("sent_at", { ascending: false })
+96              .limit(5);
+97  
+98            setNotifications(notifs || []);
+99          }
+100        } catch (error) {
+101          console.error("Error fetching user data:", error);
+102        } finally {
+103          setLoading(false);
+104        }
+105      };
+106  
+107      fetchUserData();
+108    }, [user]);
+109  
+110    const handleSignOut = async () => {
+111      await signOut();
+112    };
+113  
+114    // Calculate health stats
+115    const todayMetrics = healthMetrics[0];
+116    const weeklyMetrics = healthMetrics.slice(0, 7);
+117    const totalSteps = weeklyMetrics.reduce(
+118      (sum, metric) => sum + (metric.steps || 0),
+119      0
+120    );
+121    const avgCalories =
+122      weeklyMetrics.reduce((sum, metric) => sum + (metric.calories || 0), 0) /
+123      (weeklyMetrics.length || 1);
+124    const totalWater = weeklyMetrics.reduce(
+125      (sum, metric) => sum + (metric.water_ml || 0),
+126      0
+127    );
+128  
+129    // User dropdown menu
+130    const userMenu = (
+131      <Menu>
+132        <Menu.Item
+133          key="profile"
+134          icon={<UserOutlined />}
+135          onClick={() => setSelectedKey("profile")}
+136        >
+137          Profile
+138        </Menu.Item>
+139        <Menu.Item key="settings" icon={<SettingOutlined />}>
+140          Settings
+141        </Menu.Item>
+142        <Menu.Divider />
+143        <Menu.Item
+144          key="logout"
+145          icon={<LogoutOutlined />}
+146          onClick={handleSignOut}
+147          danger
+148        >
+149          Sign Out
+150        </Menu.Item>
+151      </Menu>
+152    );
+153  
+154    // Sidebar menu items (conditionally include admin and data analyst menus)
+155    const menuItems = [
+156      {
+157        key: "dashboard",
+158        icon: <DashboardOutlined />,
+159        label: "Dashboard",
+160      },
+161      {
+162        key: "profile",
+163        icon: <UserOutlined />,
+164        label: "Profile",
+165      },
+166      {
+167        key: "health",
+168        icon: <HeartOutlined />,
+169        label: "Health Metrics",
+170      },
+171      {
+172        key: "reports",
+173        icon: <FileTextOutlined />,
+174        label: "Reports",
+175      },
+176      {
+177        key: "notifications",
+178        icon: <BellOutlined />,
+179        label: "Notifications",
+180      },
+181      // Only show admin menu if user is admin
+182      ...(isAdmin
+183        ? [
+184            {
+185              key: "admin",
+186              icon: <CrownOutlined />,
+187              label: "Role Management",
+188            },
+189          ]
+190        : []),
+191      // Only show database management if user is data analyst
+192      ...(isDataAnalyst
+193        ? [
+194            {
+195              key: "database",
+196              icon: <DatabaseOutlined />,
+197              label: "Database Management",
+198            },
+199          ]
+200        : []),
+201    ];
+202  
+203    const renderDashboardContent = () => (
+204      <div>
+205        {/* Welcome Section */}
+206        <div style={{ marginBottom: 24 }}>
+207          <Title level={2}>
+208            Welcome back, {userProfile?.username || "User"}!
+209            {isAdmin && (
+210              <Tag color="red" style={{ marginLeft: 8 }}>
+211                Admin
+212              </Tag>
+213            )}
+214            {isDataAnalyst && (
+215              <Tag color="blue" style={{ marginLeft: 8 }}>
+216                Data Analyst
+217              </Tag>
+218            )}
+219          </Title>
+220          <Text type="secondary">
+221            Here's your health overview for today and this week.
+222          </Text>
+223        </div>
+224  
+225        {/* Today's Stats */}
+226        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+227          <Col xs={24} sm={12} lg={6}>
+228            <Card>
+229              <Statistic
+230                title="Steps Today"
+231                value={todayMetrics?.steps || 0}
+232                prefix={<StepForwardOutlined style={{ color: "#1890ff" }} />}
+233                suffix="steps"
+234              />
+235              <Progress
+236                percent={Math.min(
+237                  ((todayMetrics?.steps || 0) / 10000) * 100,
+238                  100
+239                )}
+240                showInfo={false}
+241                strokeColor="#1890ff"
+242                size="small"
+243              />
+244            </Card>
+245          </Col>
+246          <Col xs={24} sm={12} lg={6}>
+247            <Card>
+248              <Statistic
+249                title="Calories Today"
+250                value={todayMetrics?.calories || 0}
+251                prefix={<FireOutlined style={{ color: "#ff7875" }} />}
+252                suffix="kcal"
+253              />
+254              <Progress
+255                percent={Math.min(
+256                  ((todayMetrics?.calories || 0) / 2000) * 100,
+257                  100
+258                )}
+259                showInfo={false}
+260                strokeColor="#ff7875"
+261                size="small"
+262              />
+263            </Card>
+264          </Col>
+265          <Col xs={24} sm={12} lg={6}>
+266            <Card>
+267              <Statistic
+268                title="Water Today"
+269                value={todayMetrics?.water_ml || 0}
+270                prefix={<ThunderboltOutlined style={{ color: "#40a9ff" }} />}
+271                suffix="ml"
+272              />
+273              <Progress
+274                percent={Math.min(
+275                  ((todayMetrics?.water_ml || 0) / 2000) * 100,
+276                  100
+277                )}
+278                showInfo={false}
+279                strokeColor="#40a9ff"
+280                size="small"
+281              />
+282            </Card>
+283          </Col>
+284          <Col xs={24} sm={12} lg={6}>
+285            <Card>
+286              <Statistic
+287                title="Weekly Goal"
+288                value={Math.round((totalSteps / 70000) * 100)}
+289                prefix={<TrophyOutlined style={{ color: "#faad14" }} />}
+290                suffix="%"
+291              />
+292              <Progress
+293                percent={Math.min((totalSteps / 70000) * 100, 100)}
+294                showInfo={false}
+295                strokeColor="#faad14"
+296                size="small"
+297              />
+298            </Card>
+299          </Col>
+300        </Row>
+301  
+302        {/* Weekly Overview */}
+303        <Row gutter={[16, 16]}>
+304          <Col xs={24} lg={16}>
+305            <Card title="Weekly Overview" style={{ height: 400 }}>
+306              <Row gutter={[16, 16]}>
+307                <Col span={8}>
+308                  <Statistic
+309                    title="Total Steps"
+310                    value={totalSteps}
+311                    suffix="steps"
+312                  />
+313                </Col>
+314                <Col span={8}>
+315                  <Statistic
+316                    title="Avg Calories"
+317                    value={Math.round(avgCalories)}
+318                    suffix="kcal/day"
+319                  />
+320                </Col>
+321                <Col span={8}>
+322                  <Statistic title="Total Water" value={totalWater} suffix="ml" />
+323                </Col>
+324              </Row>
+325  
+326              <div style={{ marginTop: 24 }}>
+327                <Title level={4}>Recent Activity</Title>
+328                <List
+329                  dataSource={healthMetrics.slice(0, 5)}
+330                  renderItem={(metric) => (
+331                    <List.Item>
+332                      <List.Item.Meta
+333                        title={`${metric.date}`}
+334                        description={
+335                          <Space>
+336                            {metric.steps && (
+337                              <Tag color="blue">{metric.steps} steps</Tag>
+338                            )}
+339                            {metric.calories && (
+340                              <Tag color="red">{metric.calories} kcal</Tag>
+341                            )}
+342                            {metric.water_ml && (
+343                              <Tag color="cyan">{metric.water_ml}ml water</Tag>
+344                            )}
+345                          </Space>
+346                        }
+347                      />
+348                    </List.Item>
+349                  )}
+350                />
+351              </div>
+352            </Card>
+353          </Col>
+354  
+355          <Col xs={24} lg={8}>
+356            <Card title="Recent Notifications" style={{ height: 400 }}>
+357              <List
+358                dataSource={notifications}
+359                renderItem={(notification) => (
+360                  <List.Item>
+361                    <List.Item.Meta
+362                      avatar={<Avatar icon={<BellOutlined />} size="small" />}
+363                      title={notification.message}
+364                      description={
+365                        notification.sent_at
+366                          ? new Date(notification.sent_at).toLocaleDateString()
+367                          : "Just now"
+368                      }
+369                    />
+370                  </List.Item>
+371                )}
+372                locale={{ emptyText: "No notifications" }}
+373              />
+374            </Card>
+375          </Col>
+376        </Row>
+377      </div>
+378    );
+379  
+380    const renderContent = () => {
+381      switch (selectedKey) {
+382        case "dashboard":
+383          return renderDashboardContent();
+384        case "profile":
+385          return <ProfilePage />;
+386        case "health":
+387          return <HealthMetricsPage />;
+388        case "reports":
+389          return <ReportsPage />;
+390        case "notifications":
+391          return <NotificationsPage />;
+392        case "admin":
+393          return <RoleManagementPage />;
+394        case "database":
+395          return <DatabaseManagementPage />;
+396        default:
+397          return renderDashboardContent();
+398      }
+399    };
+400  
+401    if (loading || adminLoading) {
+402      return (
+403        <div
+404          style={{
+405            height: "100vh",
+406            display: "flex",
+407            alignItems: "center",
+408            justifyContent: "center",
+409          }}
+410        >
+411          <Text>Loading dashboard...</Text>
+412        </div>
+413      );
+414    }
+415  
+416    return (
+417      <Layout style={{ minHeight: "100vh" }}>
+418        {/* Sidebar */}
+419        <Sider
+420          trigger={null}
+421          collapsible
+422          collapsed={collapsed}
+423          style={{
+424            background: "#fff",
+425            boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+426          }}
+427        >
+428          <div
+429            style={{
+430              height: 64,
+431              display: "flex",
+432              alignItems: "center",
+433              justifyContent: "center",
+434              borderBottom: "1px solid #f0f0f0",
+435            }}
+436          >
+437            <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
+438              {collapsed ? "H" : "HealthApp"}
+439            </Title>
+440          </div>
+441          <Menu
+442            mode="inline"
+443            selectedKeys={[selectedKey]}
+444            style={{ borderRight: 0, marginTop: 16 }}
+445            onClick={({ key }) => setSelectedKey(key)}
+446          >
+447            {menuItems.map((item) => (
+448              <Menu.Item key={item.key} icon={item.icon}>
+449                <span>{item.label}</span>
+450              </Menu.Item>
+451            ))}
+452          </Menu>
+453        </Sider>
+454  
+455        <Layout>
+456          {/* Header */}
+457          <Header
+458            style={{
+459              background: "#fff",
+460              padding: "0 24px",
+461              display: "flex",
+462              alignItems: "center",
+463              justifyContent: "space-between",
+464              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+465            }}
+466          >
+467            <Button
+468              type="text"
+469              icon={collapsed ? <UserOutlined /> : <UserOutlined />}
+470              onClick={() => setCollapsed(!collapsed)}
+471              style={{ fontSize: 16 }}
+472            />
+473  
+474            <Space>
+475              <NotificationsPopup>
+476                <Button type="text" icon={<BellOutlined />} />
+477              </NotificationsPopup>
+478              <Dropdown overlay={userMenu} placement="bottomRight">
+479                <Space style={{ cursor: "pointer" }}>
+480                  <Avatar icon={<UserOutlined />} />
+481                  <Text strong>{userProfile?.username}</Text>
+482                  {userProfile?.is_premium && <Tag color="gold">Premium</Tag>}
+483                  {isAdmin && <Tag color="red">Admin</Tag>}
+484                  {isDataAnalyst && <Tag color="blue">Data Analyst</Tag>}
+485                </Space>
+486              </Dropdown>
+487            </Space>
+488          </Header>
+489  
+490          {/* Main Content */}
+491          <Content
+492            style={{
+493              margin: selectedKey === "dashboard" ? "24px" : "0",
+494              padding: selectedKey === "dashboard" ? "24px" : "0",
+495              background: selectedKey === "dashboard" ? "#fff" : "transparent",
+496              borderRadius: selectedKey === "dashboard" ? "8px" : "0",
+497              minHeight: "calc(100vh - 112px)",
+498            }}
+499          >
+500            {renderContent()}
+501          </Content>
+502        </Layout>
+503      </Layout>
+504    );
+505  };
+506  
+507  export default DashboardScreen;
+
+
+
+
+В.7 HealthMetricsPage.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/health/HealthMetricsPage.tsx
+1  import React, { useState, useEffect } from "react";
+2  import {
+3    Card,
+4    Row,
+5    Col,
+6    Statistic,
+7    Button,
+8    Form,
+9    Input,
+10    DatePicker,
+11    Table,
+12    Space,
+13    Typography,
+14    Progress,
+15    Modal,
+16    Alert,
+17  } from "antd";
+18  import {
+19    PlusOutlined,
+20    EditOutlined,
+21    DeleteOutlined,
+22    StepForwardOutlined,
+23    FireOutlined,
+24    ThunderboltOutlined,
+25    TrophyOutlined,
+26  } from "@ant-design/icons";
+27  import { useAuth } from "../../hooks/useAuth";
+28  import { supabase } from "../../lib/supabase";
+29  import type { Tables, TablesInsert, TablesUpdate } from "../../types/supabase";
+30  import dayjs from "dayjs";
+31  
+32  const { Title, Text } = Typography;
+33  const { RangePicker } = DatePicker;
+34  
+35  const HealthMetricsPage: React.FC = () => {
+36    const { user } = useAuth();
+37    const [form] = Form.useForm();
+38    const [userProfile, setUserProfile] = useState<Tables<"users"> | null>(null);
+39    const [metrics, setMetrics] = useState<Tables<"health_metrics">[]>([]);
+40    const [loading, setLoading] = useState(true);
+41    const [saving, setSaving] = useState(false);
+42    const [modalVisible, setModalVisible] = useState(false);
+43    const [editingMetric, setEditingMetric] =
+44      useState<Tables<"health_metrics"> | null>(null);
+45    const [error, setError] = useState<string | null>(null);
+46    const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
+47      null
+48    );
+49    const [stats, setStats] = useState({
+50      totalSteps: 0,
+51      avgCalories: 0,
+52      totalWater: 0,
+53      totalDays: 0,
+54      weeklyGoalProgress: 0,
+55    });
+56  
+57    // Handle date range change
+58    const handleDateRangeChange = (
+59      dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+60    ) => {
+61      if (dates && dates[0] && dates[1]) {
+62        setDateRange([dates[0], dates[1]]);
+63      } else {
+64        setDateRange(null);
+65      }
+66    };
+67  
+68    // Fetch user profile and metrics
+69    useEffect(() => {
+70      const fetchData = async () => {
+71        if (!user) return;
+72  
+73        try {
+74          // Fetch user profile
+75          const { data: profile } = await supabase
+76            .from("users")
+77            .select("*")
+78            .eq("auth_id", user.id)
+79            .single();
+80  
+81          if (profile) {
+82            setUserProfile(profile);
+83  
+84            // Fetch health metrics
+85            let query = supabase
+86              .from("health_metrics")
+87              .select("*")
+88              .eq("user_id", profile.id)
+89              .order("date", { ascending: false });
+90  
+91            // Apply date filter if set
+92            if (dateRange) {
+93              query = query
+94                .gte("date", dateRange[0].format("YYYY-MM-DD"))
+95                .lte("date", dateRange[1].format("YYYY-MM-DD"));
+96            }
+97  
+98            const { data: metricsData, error } = await query;
+99  
+100            if (error) {
+101              setError(error.message);
+102            } else {
+103              setMetrics(metricsData || []);
+104              calculateStats(metricsData || []);
+105            }
+106          }
+107        } catch (err) {
+108          setError("Failed to fetch data");
+109        } finally {
+110          setLoading(false);
+111        }
+112      };
+113  
+114      fetchData();
+115    }, [user, dateRange]);
+116  
+117    // Calculate statistics
+118    const calculateStats = (metricsData: Tables<"health_metrics">[]) => {
+119      const totalSteps = metricsData.reduce((sum, m) => sum + (m.steps || 0), 0);
+120      const totalCalories = metricsData.reduce(
+121        (sum, m) => sum + (m.calories || 0),
+122        0
+123      );
+124      const totalWater = metricsData.reduce(
+125        (sum, m) => sum + (m.water_ml || 0),
+126        0
+127      );
+128      const totalDays = metricsData.length;
+129      const avgCalories = totalDays > 0 ? totalCalories / totalDays : 0;
+130  
+131      // Weekly goal progress (assuming 70,000 steps per week)
+132      const weeklyGoalProgress = Math.min((totalSteps / 70000) * 100, 100);
+133  
+134      setStats({
+135        totalSteps,
+136        avgCalories: Math.round(avgCalories),
+137        totalWater,
+138        totalDays,
+139        weeklyGoalProgress,
+140      });
+141    };
+142  
+143    // Handle form submission
+144    const handleSubmit = async (values: any) => {
+145      if (!userProfile) return;
+146  
+147      setSaving(true);
+148      setError(null);
+149  
+150      try {
+151        const metricData: TablesInsert<"health_metrics"> = {
+152          date: values.date.format("YYYY-MM-DD"),
+153          user_id: userProfile.id,
+154          steps: values.steps || null,
+155          calories: values.calories || null,
+156          water_ml: values.water_ml || null,
+157        };
+158  
+159        if (editingMetric) {
+160          // Update existing metric
+161          const { error } = await supabase
+162            .from("health_metrics")
+163            .update(metricData as TablesUpdate<"health_metrics">)
+164            .eq("metric_id", editingMetric.metric_id);
+165  
+166          if (error) {
+167            setError(error.message);
+168          } else {
+169            // Refresh data
+170            const { data: updatedMetrics } = await supabase
+171              .from("health_metrics")
+172              .select("*")
+173              .eq("user_id", userProfile.id)
+174              .order("date", { ascending: false });
+175  
+176            setMetrics(updatedMetrics || []);
+177            calculateStats(updatedMetrics || []);
+178            setModalVisible(false);
+179            setEditingMetric(null);
+180            form.resetFields();
+181          }
+182        } else {
+183          // Create new metric
+184          const { error } = await supabase
+185            .from("health_metrics")
+186            .insert(metricData);
+187  
+188          if (error) {
+189            setError(error.message);
+190          } else {
+191            // Refresh data
+192            const { data: updatedMetrics } = await supabase
+193              .from("health_metrics")
+194              .select("*")
+195              .eq("user_id", userProfile.id)
+196              .order("date", { ascending: false });
+197  
+198            setMetrics(updatedMetrics || []);
+199            calculateStats(updatedMetrics || []);
+200            setModalVisible(false);
+201            form.resetFields();
+202          }
+203        }
+204      } catch (err) {
+205        setError("Failed to save metric");
+206      } finally {
+207        setSaving(false);
+208      }
+209    };
+210  
+211    // Handle edit
+212    const handleEdit = (metric: Tables<"health_metrics">) => {
+213      setEditingMetric(metric);
+214      form.setFieldsValue({
+215        date: dayjs(metric.date),
+216        steps: metric.steps,
+217        calories: metric.calories,
+218        water_ml: metric.water_ml,
+219      });
+220      setModalVisible(true);
+221    };
+222  
+223    // Handle delete
+224    const handleDelete = async (metricId: string) => {
+225      Modal.confirm({
+226        title: "Delete Health Metric",
+227        content: "Are you sure you want to delete this health metric?",
+228        okText: "Delete",
+229        okType: "danger",
+230        onOk: async () => {
+231          const { error } = await supabase
+232            .from("health_metrics")
+233            .delete()
+234            .eq("metric_id", metricId);
+235  
+236          if (error) {
+237            setError(error.message);
+238          } else {
+239            setMetrics((prev) => prev.filter((m) => m.metric_id !== metricId));
+240            calculateStats(metrics.filter((m) => m.metric_id !== metricId));
+241          }
+242        },
+243      });
+244    };
+245  
+246    // Handle modal close
+247    const handleModalClose = () => {
+248      setModalVisible(false);
+249      setEditingMetric(null);
+250      setError(null);
+251      form.resetFields();
+252    };
+253  
+254    // Table columns
+255    const columns = [
+256      {
+257        title: "Date",
+258        dataIndex: "date",
+259        key: "date",
+260        render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
+261        sorter: (a: Tables<"health_metrics">, b: Tables<"health_metrics">) =>
+262          dayjs(a.date).unix() - dayjs(b.date).unix(),
+263      },
+264      {
+265        title: "Steps",
+266        dataIndex: "steps",
+267        key: "steps",
+268        render: (steps: number | null) =>
+269          steps ? (
+270            <Space>
+271              <StepForwardOutlined style={{ color: "#1890ff" }} />
+272              {steps.toLocaleString()}
+273            </Space>
+274          ) : (
+275            <Text type="secondary">-</Text>
+276          ),
+277        sorter: (a: Tables<"health_metrics">, b: Tables<"health_metrics">) =>
+278          (a.steps || 0) - (b.steps || 0),
+279      },
+280      {
+281        title: "Calories",
+282        dataIndex: "calories",
+283        key: "calories",
+284        render: (calories: number | null) =>
+285          calories ? (
+286            <Space>
+287              <FireOutlined style={{ color: "#ff7875" }} />
+288              {calories}
+289            </Space>
+290          ) : (
+291            <Text type="secondary">-</Text>
+292          ),
+293        sorter: (a: Tables<"health_metrics">, b: Tables<"health_metrics">) =>
+294          (a.calories || 0) - (b.calories || 0),
+295      },
+296      {
+297        title: "Water (ml)",
+298        dataIndex: "water_ml",
+299        key: "water_ml",
+300        render: (water: number | null) =>
+301          water ? (
+302            <Space>
+303              <ThunderboltOutlined style={{ color: "#40a9ff" }} />
+304              {water}
+305            </Space>
+306          ) : (
+307            <Text type="secondary">-</Text>
+308          ),
+309        sorter: (a: Tables<"health_metrics">, b: Tables<"health_metrics">) =>
+310          (a.water_ml || 0) - (b.water_ml || 0),
+311      },
+312      {
+313        title: "Actions",
+314        key: "actions",
+315        render: (_: any, record: Tables<"health_metrics">) => (
+316          <Space>
+317            <Button
+318              type="text"
+319              icon={<EditOutlined />}
+320              onClick={() => handleEdit(record)}
+321            />
+322            <Button
+323              type="text"
+324              danger
+325              icon={<DeleteOutlined />}
+326              onClick={() => handleDelete(record.metric_id)}
+327            />
+328          </Space>
+329        ),
+330      },
+331    ];
+332  
+333    if (loading) {
+334      return (
+335        <div style={{ padding: 24, textAlign: "center" }}>
+336          <Text>Loading health metrics...</Text>
+337        </div>
+338      );
+339    }
+340  
+341    return (
+342      <div style={{ padding: 24 }}>
+343        <div
+344          style={{
+345            marginBottom: 24,
+346            display: "flex",
+347            justifyContent: "space-between",
+348            alignItems: "center",
+349          }}
+350        >
+351          <Title level={2}>Health Metrics</Title>
+352          <Button
+353            type="primary"
+354            icon={<PlusOutlined />}
+355            onClick={() => setModalVisible(true)}
+356          >
+357            Add Metric
+358          </Button>
+359        </div>
+360  
+361        {error && (
+362          <Alert
+363            message="Error"
+364            description={error}
+365            type="error"
+366            showIcon
+367            closable
+368            onClose={() => setError(null)}
+369            style={{ marginBottom: 16 }}
+370          />
+371        )}
+372  
+373        {/* Statistics Cards */}
+374        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+375          <Col xs={24} sm={12} lg={6}>
+376            <Card>
+377              <Statistic
+378                title="Total Steps"
+379                value={stats.totalSteps}
+380                prefix={<StepForwardOutlined style={{ color: "#1890ff" }} />}
+381                suffix="steps"
+382              />
+383            </Card>
+384          </Col>
+385          <Col xs={24} sm={12} lg={6}>
+386            <Card>
+387              <Statistic
+388                title="Avg Calories"
+389                value={stats.avgCalories}
+390                prefix={<FireOutlined style={{ color: "#ff7875" }} />}
+391                suffix="kcal/day"
+392              />
+393            </Card>
+394          </Col>
+395          <Col xs={24} sm={12} lg={6}>
+396            <Card>
+397              <Statistic
+398                title="Total Water"
+399                value={stats.totalWater}
+400                prefix={<ThunderboltOutlined style={{ color: "#40a9ff" }} />}
+401                suffix="ml"
+402              />
+403            </Card>
+404          </Col>
+405          <Col xs={24} sm={12} lg={6}>
+406            <Card>
+407              <Statistic
+408                title="Weekly Goal"
+409                value={Math.round(stats.weeklyGoalProgress)}
+410                prefix={<TrophyOutlined style={{ color: "#faad14" }} />}
+411                suffix="%"
+412              />
+413              <Progress
+414                percent={stats.weeklyGoalProgress}
+415                showInfo={false}
+416                strokeColor="#faad14"
+417                size="small"
+418                style={{ marginTop: 8 }}
+419              />
+420            </Card>
+421          </Col>
+422        </Row>
+423  
+424        {/* Filters */}
+425        <Card style={{ marginBottom: 24 }}>
+426          <Space wrap>
+427            <Text strong>Filter by date:</Text>
+428            <RangePicker
+429              value={dateRange}
+430              onChange={handleDateRangeChange}
+431              format="YYYY-MM-DD"
+432            />
+433            <Button onClick={() => setDateRange(null)}>Clear Filter</Button>
+434          </Space>
+435        </Card>
+436  
+437        {/* Metrics Table */}
+438        <Card title={`Health Metrics (${metrics.length} records)`}>
+439          <Table
+440            dataSource={metrics}
+441            columns={columns}
+442            rowKey="metric_id"
+443            pagination={{
+444              pageSize: 10,
+445              showSizeChanger: true,
+446              showQuickJumper: true,
+447              showTotal: (total, range) =>
+448                `${range[0]}-${range[1]} of ${total} items`,
+449            }}
+450          />
+451        </Card>
+452  
+453        {/* Add/Edit Modal */}
+454        <Modal
+455          title={editingMetric ? "Edit Health Metric" : "Add Health Metric"}
+456          open={modalVisible}
+457          onCancel={handleModalClose}
+458          footer={null}
+459          width={600}
+460        >
+461          <Form
+462            form={form}
+463            layout="vertical"
+464            onFinish={handleSubmit}
+465            initialValues={{
+466              date: dayjs(),
+467            }}
+468          >
+469            <Form.Item
+470              name="date"
+471              label="Date"
+472              rules={[{ required: true, message: "Please select a date" }]}
+473            >
+474              <DatePicker style={{ width: "100%" }} />
+475            </Form.Item>
+476  
+477            <Row gutter={16}>
+478              <Col span={8}>
+479                <Form.Item
+480                  name="steps"
+481                  label="Steps"
+482                  rules={[
+483                    { 
+484                      type: "number",
+485                      transform: (value) => Number(value)
+486                    },
+487                    {
+488                      validator: (_, value) => {
+489                        if (value && isNaN(Number(value))) {
+490                          return Promise.reject('Please enter a valid number');
+491                        }
+492                        return Promise.resolve();
+493                      }
+494                    }
+495                  ]}
+496                >
+497                  <Input
+498                    type="number"
+499                    placeholder="e.g., 10000"
+500                    prefix={<StepForwardOutlined />}
+501                  />
+502                </Form.Item>
+503              </Col>
+504              <Col span={8}>
+505                <Form.Item
+506                  name="calories"
+507                  label="Calories"
+508                  rules={[
+509                    {
+510                      type: "number",
+511                      transform: (value) => Number(value)
+512                    },
+513                    {
+514                      validator: (_, value) => {
+515                        if (value && isNaN(Number(value))) {
+516                          return Promise.reject('Please enter a valid number');
+517                        }
+518                        return Promise.resolve();
+519                      }
+520                    }
+521                  ]}
+522                >
+523                  <Input
+524                    type="number"
+525                    placeholder="e.g., 2000"
+526                    prefix={<FireOutlined />}
+527                  />
+528                </Form.Item>
+529              </Col>
+530              <Col span={8}>
+531                <Form.Item
+532                  name="water_ml"
+533                  label="Water (ml)"
+534                  rules={[
+535                    {
+536                      type: "number",
+537                      transform: (value) => Number(value)
+538                    },
+539                    {
+540                      validator: (_, value) => {
+541                        if (value && isNaN(Number(value))) {
+542                          return Promise.reject('Please enter a valid number');
+543                        }
+544                        return Promise.resolve();
+545                      }
+546                    }
+547                  ]}
+548                >
+549                  <Input
+550                    type="number"
+551                    placeholder="e.g., 2000"
+552                    prefix={<ThunderboltOutlined />}
+553                  />
+554                </Form.Item>
+555              </Col>
+556            </Row>
+557  
+558            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
+559              <Space>
+560                <Button onClick={handleModalClose}>Cancel</Button>
+561                <Button type="primary" htmlType="submit" loading={saving}>
+562                  {editingMetric ? "Update" : "Add"} Metric
+563                </Button>
+564              </Space>
+565            </Form.Item>
+566          </Form>
+567        </Modal>
+568      </div>
+569    );
+570  };
+571  
+572  export default HealthMetricsPage;
+
+
+В.8 NotificationsPage.tsx
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab3/pzpi-22-1-bezditko-maksym-lab3/src/components/notifications/NotificationsPage.tsx
+1  import React, { useState, useEffect, useCallback, useRef } from "react";
+2  import {
+3    Card,
+4    List,
+5    Button,
+6    Typography,
+7    Empty,
+8    Space,
+9    Tag,
+10    Input,
+11    Select,
+12    DatePicker,
+13    Row,
+14    Col,
+15    Statistic,
+16    Modal,
+17    Form,
+18    message,
+19    Popconfirm,
+20    Tooltip,
+21    Badge,
+22  } from "antd";
+23  import {
+24    DeleteOutlined,
+25    ReloadOutlined,
+26    PlusOutlined,
+27    SearchOutlined,
+28    FilterOutlined,
+29    BellOutlined,
+30    ExclamationCircleOutlined,
+31    InfoCircleOutlined,
+32    CheckCircleOutlined,
+33    WarningOutlined,
+34  } from "@ant-design/icons";
+35  import { useAuth } from "../../hooks/useAuth";
+36  import { supabase } from "../../lib/supabase";
+37  import type { Tables } from "../../types/supabase";
+38  import dayjs from "dayjs";
+39  
+40  const { Title, Text } = Typography;
+41  const { RangePicker } = DatePicker;
+42  const { TextArea } = Input;
+43  
+44  interface NotificationStats {
+45    total: number;
+46    today: number;
+47    thisWeek: number;
+48    unread: number;
+49  }
+50  
+51  const NotificationsPage: React.FC = () => {
+52    const { user } = useAuth();
+53    const [notifications, setNotifications] = useState<Tables<"notifications">[]>(
+54      []
+55    );
+56    const [filteredNotifications, setFilteredNotifications] = useState<
+57      Tables<"notifications">[]
+58    >([]);
+59    const [loading, setLoading] = useState(false);
+60    const [stats, setStats] = useState<NotificationStats>({
+61      total: 0,
+62      today: 0,
+63      thisWeek: 0,
+64      unread: 0,
+65    });
+66    const [searchText, setSearchText] = useState("");
+67    const [filterType, setFilterType] = useState<string>("all");
+68    const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
+69      null
+70    );
+71    const [createModalVisible, setCreateModalVisible] = useState(false);
+72    const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+73    const [form] = Form.useForm();
+74    const subscriptionRef = useRef<any>(null);
+75  
+76    // Handle date range change
+77    const handleDateRangeChange = (
+78      dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+79    ) => {
+80      if (dates && dates[0] && dates[1]) {
+81        setDateRange([dates[0], dates[1]]);
+82      } else {
+83        setDateRange(null);
+84      }
+85    };
+86  
+87    // Fetch notifications
+88    const fetchNotifications = useCallback(async () => {
+89      if (!user) {
+90        setNotifications([]);
+91        return;
+92      }
+93  
+94      setLoading(true);
+95      try {
+96        const { data: profile, error: profileError } = await supabase
+97          .from("users")
+98          .select("id")
+99          .eq("auth_id", user.id)
+100          .single();
+101  
+102        if (profileError) {
+103          console.error("Error fetching user profile:", profileError);
+104          setNotifications([]);
+105          return;
+106        }
+107  
+108        if (profile) {
+109          const { data, error } = await supabase
+110            .from("notifications")
+111            .select("*")
+112            .eq("user_id", profile.id)
+113            .order("sent_at", { ascending: false });
+114  
+115          if (error) {
+116            console.error("Error fetching notifications:", error);
+117            setNotifications([]);
+118          } else {
+119            setNotifications(data || []);
+120          }
+121        }
+122      } catch (err) {
+123        console.error("Error fetching notifications:", err);
+124        setNotifications([]);
+125      } finally {
+126        setLoading(false);
+127      }
+128    }, [user]);
+129  
+130    // Calculate statistics
+131    const calculateStats = useCallback(
+132      (notificationList: Tables<"notifications">[]) => {
+133        const now = dayjs();
+134        const today = now.startOf("day");
+135        const weekStart = now.startOf("week");
+136  
+137        const stats: NotificationStats = {
+138          total: notificationList.length,
+139          today: 0,
+140          thisWeek: 0,
+141          unread: notificationList.length, // Since we don't have read status, all are considered unread
+142        };
+143  
+144        notificationList.forEach((notification) => {
+145          if (notification.sent_at) {
+146            const sentDate = dayjs(notification.sent_at);
+147            if (sentDate.isAfter(today)) {
+148              stats.today++;
+149            }
+150            if (sentDate.isAfter(weekStart)) {
+151              stats.thisWeek++;
+152            }
+153          }
+154        });
+155  
+156        setStats(stats);
+157      },
+158      []
+159    );
+160  
+161    // Filter notifications
+162    const filterNotifications = useCallback(() => {
+163      let filtered = [...notifications];
+164  
+165      // Search filter
+166      if (searchText) {
+167        filtered = filtered.filter((notification) =>
+168          notification.message.toLowerCase().includes(searchText.toLowerCase())
+169        );
+170      }
+171  
+172      // Type filter
+173      if (filterType !== "all") {
+174        filtered = filtered.filter((notification) => {
+175          const type = getNotificationType(notification.message).type;
+176          return type === filterType;
+177        });
+178      }
+179  
+180      // Date range filter
+181      if (dateRange) {
+182        const [start, end] = dateRange;
+183        filtered = filtered.filter((notification) => {
+184          if (!notification.sent_at) return false;
+185          const sentDate = dayjs(notification.sent_at);
+186          return (
+187            sentDate.isAfter(start.startOf("day")) &&
+188            sentDate.isBefore(end.endOf("day"))
+189          );
+190        });
+191      }
+192  
+193      setFilteredNotifications(filtered);
+194    }, [notifications, searchText, filterType, dateRange]);
+195  
+196    // Get notification type and color
+197    const getNotificationType = (message: string) => {
+198      if (
+199        message.toLowerCase().includes("goal") ||
+200        message.toLowerCase().includes("achievement") ||
+201        message.toLowerCase().includes("congratulations")
+202      ) {
+203        return { type: "success", color: "green", icon: <CheckCircleOutlined /> };
+204      }
+205      if (
+206        message.toLowerCase().includes("reminder") ||
+207        message.toLowerCase().includes("time") ||
+208        message.toLowerCase().includes("don't forget")
+209      ) {
+210        return { type: "warning", color: "orange", icon: <WarningOutlined /> };
+211      }
+212      if (
+213        message.toLowerCase().includes("alert") ||
+214        message.toLowerCase().includes("important") ||
+215        message.toLowerCase().includes("expires")
+216      ) {
+217        return {
+218          type: "error",
+219          color: "red",
+220          icon: <ExclamationCircleOutlined />,
+221        };
+222      }
+223      return { type: "info", color: "blue", icon: <InfoCircleOutlined /> };
+224    };
+225  
+226    // Format notification time
+227    const formatTime = (timestamp: string | null) => {
+228      if (!timestamp) return "Just now";
+229      return dayjs(timestamp).format("MMM DD, YYYY HH:mm");
+230    };
+231  
+232    // Delete notification
+233    const deleteNotification = async (notificationId: string) => {
+234      setDeletingIds((prev) => new Set(prev).add(notificationId));
+235  
+236      try {
+237        const { error } = await supabase
+238          .from("notifications")
+239          .delete()
+240          .eq("notification_id", notificationId);
+241  
+242        if (error) {
+243          console.error("Error deleting notification:", error);
+244          message.error("Failed to delete notification");
+245        } else {
+246          setNotifications((prev) =>
+247            prev.filter((n) => n.notification_id !== notificationId)
+248          );
+249          message.success("Notification deleted successfully");
+250        }
+251      } catch (err) {
+252        console.error("Error deleting notification:", err);
+253        message.error("Failed to delete notification");
+254      } finally {
+255        setDeletingIds((prev) => {
+256          const newSet = new Set(prev);
+257          newSet.delete(notificationId);
+258          return newSet;
+259        });
+260      }
+261    };
+262  
+263    // Clear all notifications
+264    const clearAllNotifications = async () => {
+265      if (!user) return;
+266  
+267      setLoading(true);
+268      try {
+269        const { data: profile } = await supabase
+270          .from("users")
+271          .select("id")
+272          .eq("auth_id", user.id)
+273          .single();
+274  
+275        if (profile) {
+276          const { error } = await supabase
+277            .from("notifications")
+278            .delete()
+279            .eq("user_id", profile.id);
+280  
+281          if (error) {
+282            console.error("Error clearing notifications:", error);
+283            message.error("Failed to clear notifications");
+284          } else {
+285            setNotifications([]);
+286            message.success("All notifications cleared successfully");
+287          }
+288        }
+289      } catch (err) {
+290        console.error("Error clearing notifications:", err);
+291        message.error("Failed to clear notifications");
+292      } finally {
+293        setLoading(false);
+294      }
+295    };
+296  
+297    // Create notification
+298    const createNotification = async (values: {
+299      message: string;
+300      type: string;
+301    }) => {
+302      if (!user) return;
+303  
+304      try {
+305        const { data: profile } = await supabase
+306          .from("users")
+307          .select("id")
+308          .eq("auth_id", user.id)
+309          .single();
+310  
+311        if (profile) {
+312          const { error } = await supabase.from("notifications").insert({
+313            user_id: profile.id,
+314            message: values.message,
+315            sent_at: new Date().toISOString(),
+316          });
+317  
+318          if (error) {
+319            console.error("Error creating notification:", error);
+320            message.error("Failed to create notification");
+321          } else {
+322            message.success("Notification created successfully");
+323            setCreateModalVisible(false);
+324            form.resetFields();
+325            fetchNotifications();
+326          }
+327        }
+328      } catch (err) {
+329        console.error("Error creating notification:", err);
+330        message.error("Failed to create notification");
+331      }
+332    };
+333  
+334    // Create test notification
+335    const createTestNotification = async () => {
+336      if (!user) return;
+337  
+338      try {
+339        const { data: profile } = await supabase
+340          .from("users")
+341          .select("id")
+342          .eq("auth_id", user.id)
+343          .single();
+344  
+345        if (profile) {
+346          const testMessages = [
+347            "🎉 Congratulations! You've reached your daily step goal of 10,000 steps!",
+348            "💧 Reminder: Don't forget to stay hydrated - you're 2 glasses behind today",
+349            "🔥 Great job! You've burned 500 calories today and exceeded your goal!",
+350            "⚠️ Important: Your premium subscription expires in 3 days",
+351            "📊 Your weekly health report is ready to view - check out your progress!",
+352            "🏃‍♂️ Achievement unlocked: 7-day streak of meeting your fitness goals!",
+353            "🥗 Nutrition tip: Consider adding more vegetables to reach your daily fiber goal",
+354            "😴 Sleep reminder: Aim for 8 hours of sleep tonight for optimal recovery",
+355          ];
+356  
+357          const randomMessage =
+358            testMessages[Math.floor(Math.random() * testMessages.length)];
+359  
+360          await supabase.from("notifications").insert({
+361            user_id: profile.id,
+362            message: randomMessage,
+363            sent_at: new Date().toISOString(),
+364          });
+365  
+366          message.success("Test notification created!");
+367        }
+368      } catch (err) {
+369        console.error("Error creating test notification:", err);
+370        message.error("Failed to create test notification");
+371      }
+372    };
+373  
+374    // Set up real-time subscription
+375    useEffect(() => {
+376      if (!user) return;
+377  
+378      let isMounted = true;
+379      let subscription: any = null;
+380  
+381      const setupSubscription = async () => {
+382        try {
+383          if (!isMounted || subscriptionRef.current) return;
+384  
+385          const { data: profile } = await supabase
+386            .from("users")
+387            .select("id")
+388            .eq("auth_id", user.id)
+389            .single();
+390  
+391          if (profile && isMounted && !subscriptionRef.current) {
+392            const channelName = `notifications_page_${profile.id}_${Math.random()
+393              .toString(36)
+394              .substr(2, 9)}`;
+395  
+396            subscription = supabase
+397              .channel(channelName)
+398              .on(
+399                "postgres_changes",
+400                {
+401                  event: "INSERT",
+402                  schema: "public",
+403                  table: "notifications",
+404                  filter: `user_id=eq.${profile.id}`,
+405                },
+406                (payload) => {
+407                  if (isMounted) {
+408                    const newNotification =
+409                      payload.new as Tables<"notifications">;
+410                    setNotifications((prev) => [newNotification, ...prev]);
+411                  }
+412                }
+413              )
+414              .on(
+415                "postgres_changes",
+416                {
+417                  event: "DELETE",
+418                  schema: "public",
+419                  table: "notifications",
+420                  filter: `user_id=eq.${profile.id}`,
+421                },
+422                (payload) => {
+423                  if (isMounted) {
+424                    const deletedNotification =
+425                      payload.old as Tables<"notifications">;
+426                    setNotifications((prev) =>
+427                      prev.filter(
+428                        (n) =>
+429                          n.notification_id !==
+430                          deletedNotification.notification_id
+431                      )
+432                    );
+433                  }
+434                }
+435              )
+436              .subscribe();
+437  
+438            if (isMounted) {
+439              subscriptionRef.current = subscription;
+440            } else {
+441              subscription.unsubscribe();
+442            }
+443          }
+444        } catch (error) {
+445          console.error("Error setting up notification subscription:", error);
+446        }
+447      };
+448  
+449      setupSubscription();
+450  
+451      return () => {
+452        isMounted = false;
+453        if (subscriptionRef.current) {
+454          subscriptionRef.current.unsubscribe();
+455          subscriptionRef.current = null;
+456        }
+457        if (subscription && subscription !== subscriptionRef.current) {
+458          subscription.unsubscribe();
+459        }
+460      };
+461    }, [user]);
+462  
+463    // Effects
+464    useEffect(() => {
+465      if (user) {
+466        fetchNotifications();
+467      }
+468    }, [user, fetchNotifications]);
+469  
+470    useEffect(() => {
+471      calculateStats(notifications);
+472      filterNotifications();
+473    }, [notifications, calculateStats, filterNotifications]);
+474  
+475    return (
+476      <div style={{ padding: "24px" }}>
+477        <div style={{ marginBottom: "24px" }}>
+478          <Title level={2}>
+479            <BellOutlined style={{ marginRight: "8px" }} />
+480            Notifications
+481          </Title>
+482          <Text type="secondary">
+483            Manage and view all your notifications in one place
+484          </Text>
+485        </div>
+486  
+487        {/* Statistics Cards */}
+488        <Row gutter={16} style={{ marginBottom: "24px" }}>
+489          <Col xs={24} sm={12} md={6}>
+490            <Card>
+491              <Statistic
+492                title="Total Notifications"
+493                value={stats.total}
+494                prefix={<BellOutlined />}
+495              />
+496            </Card>
+497          </Col>
+498          <Col xs={24} sm={12} md={6}>
+499            <Card>
+500              <Statistic
+501                title="Today"
+502                value={stats.today}
+503                prefix={<CheckCircleOutlined />}
+504                valueStyle={{ color: "#3f8600" }}
+505              />
+506            </Card>
+507          </Col>
+508          <Col xs={24} sm={12} md={6}>
+509            <Card>
+510              <Statistic
+511                title="This Week"
+512                value={stats.thisWeek}
+513                prefix={<WarningOutlined />}
+514                valueStyle={{ color: "#cf1322" }}
+515              />
+516            </Card>
+517          </Col>
+518          <Col xs={24} sm={12} md={6}>
+519            <Card>
+520              <Statistic
+521                title="Unread"
+522                value={stats.unread}
+523                prefix={<ExclamationCircleOutlined />}
+524                valueStyle={{ color: "#1890ff" }}
+525              />
+526            </Card>
+527          </Col>
+528        </Row>
+529  
+530        {/* Filters and Actions */}
+531        <Card style={{ marginBottom: "24px" }}>
+532          <Row gutter={16} align="middle">
+533            <Col xs={24} sm={8} md={6}>
+534              <Input
+535                placeholder="Search notifications..."
+536                prefix={<SearchOutlined />}
+537                value={searchText}
+538                onChange={(e) => setSearchText(e.target.value)}
+539                allowClear
+540              />
+541            </Col>
+542            <Col xs={24} sm={8} md={6}>
+543              <Select
+544                placeholder="Filter by type"
+545                value={filterType}
+546                onChange={setFilterType}
+547                style={{ width: "100%" }}
+548                suffixIcon={<FilterOutlined />}
+549              >
+550                <Select.Option value="all">All Types</Select.Option>
+551                <Select.Option value="success">Success</Select.Option>
+552                <Select.Option value="warning">Warning</Select.Option>
+553                <Select.Option value="error">Error</Select.Option>
+554                <Select.Option value="info">Info</Select.Option>
+555              </Select>
+556            </Col>
+557            <Col xs={24} sm={8} md={6}>
+558              <RangePicker
+559                value={dateRange}
+560                onChange={handleDateRangeChange}
+561                style={{ width: "100%" }}
+562                placeholder={["Start Date", "End Date"]}
+563              />
+564            </Col>
+565            <Col xs={24} sm={24} md={6}>
+566              <Space>
+567                <Button
+568                  icon={<ReloadOutlined />}
+569                  onClick={fetchNotifications}
+570                  loading={loading}
+571                >
+572                  Refresh
+573                </Button>
+574                <Button
+575                  type="primary"
+576                  icon={<PlusOutlined />}
+577                  onClick={() => setCreateModalVisible(true)}
+578                >
+579                  Create
+580                </Button>
+581                {process.env.NODE_ENV === "development" && (
+582                  <Tooltip title="Add test notification (dev only)">
+583                    <Button
+584                      icon={<PlusOutlined />}
+585                      onClick={createTestNotification}
+586                    >
+587                      Test
+588                    </Button>
+589                  </Tooltip>
+590                )}
+591                {notifications.length > 0 && (
+592                  <Popconfirm
+593                    title="Are you sure you want to clear all notifications?"
+594                    onConfirm={clearAllNotifications}
+595                    okText="Yes"
+596                    cancelText="No"
+597                  >
+598                    <Button danger icon={<DeleteOutlined />}>
+599                      Clear All
+600                    </Button>
+601                  </Popconfirm>
+602                )}
+603              </Space>
+604            </Col>
+605          </Row>
+606        </Card>
+607  
+608        {/* Notifications List */}
+609        <Card>
+610          {loading ? (
+611            <div style={{ textAlign: "center", padding: "40px" }}>
+612              <Text>Loading notifications...</Text>
+613            </div>
+614          ) : filteredNotifications.length === 0 ? (
+615            <Empty
+616              description={
+617                notifications.length === 0
+618                  ? "No notifications yet"
+619                  : "No notifications match your filters"
+620              }
+621              style={{ padding: "40px" }}
+622            />
+623          ) : (
+624            <List
+625              dataSource={filteredNotifications}
+626              pagination={{
+627                pageSize: 10,
+628                showSizeChanger: true,
+629                showQuickJumper: true,
+630                showTotal: (total, range) =>
+631                  `${range[0]}-${range[1]} of ${total} notifications`,
+632              }}
+633              renderItem={(notification) => {
+634                const { color, icon, type } = getNotificationType(
+635                  notification.message
+636                );
+637                return (
+638                  <List.Item
+639                    actions={[
+640                      <Popconfirm
+641                        title="Are you sure you want to delete this notification?"
+642                        onConfirm={() =>
+643                          deleteNotification(notification.notification_id)
+644                        }
+645                        okText="Yes"
+646                        cancelText="No"
+647                      >
+648                        <Button
+649                          type="text"
+650                          danger
+651                          icon={<DeleteOutlined />}
+652                          loading={deletingIds.has(notification.notification_id)}
+653                        >
+654                          Delete
+655                        </Button>
+656                      </Popconfirm>,
+657                    ]}
+658                  >
+659                    <List.Item.Meta
+660                      avatar={
+661                        <Badge dot>
+662                          <div
+663                            style={{
+664                              width: 40,
+665                              height: 40,
+666                              borderRadius: "50%",
+667                              backgroundColor: color,
+668                              display: "flex",
+669                              alignItems: "center",
+670                              justifyContent: "center",
+671                              color: "white",
+672                              fontSize: "16px",
+673                            }}
+674                          >
+675                            {icon}
+676                          </div>
+677                        </Badge>
+678                      }
+679                      title={
+680                        <Space>
+681                          <Tag color={color}>{type.toUpperCase()}</Tag>
+682                          <Text type="secondary" style={{ fontSize: "12px" }}>
+683                            {formatTime(notification.sent_at)}
+684                          </Text>
+685                        </Space>
+686                      }
+687                      description={
+688                        <Text style={{ fontSize: "14px", lineHeight: 1.5 }}>
+689                          {notification.message}
+690                        </Text>
+691                      }
+692                    />
+693                  </List.Item>
+694                );
+695              }}
+696            />
+697          )}
+698        </Card>
+699  
+700        {/* Create Notification Modal */}
+701        <Modal
+702          title="Create New Notification"
+703          open={createModalVisible}
+704          onCancel={() => {
+705            setCreateModalVisible(false);
+706            form.resetFields();
+707          }}
+708          footer={null}
+709        >
+710          <Form form={form} layout="vertical" onFinish={createNotification}>
+711            <Form.Item
+712              name="message"
+713              label="Message"
+714              rules={[
+715                { required: true, message: "Please enter a message" },
+716                { min: 10, message: "Message must be at least 10 characters" },
+717                { max: 500, message: "Message must not exceed 500 characters" },
+718              ]}
+719            >
+720              <TextArea
+721                rows={4}
+722                placeholder="Enter notification message..."
+723                showCount
+724                maxLength={500}
+725              />
+726            </Form.Item>
+727  
+728            <Form.Item
+729              name="type"
+730              label="Type"
+731              rules={[{ required: true, message: "Please select a type" }]}
+732            >
+733              <Select placeholder="Select notification type">
+734                <Select.Option value="info">Info</Select.Option>
+735                <Select.Option value="success">Success</Select.Option>
+736                <Select.Option value="warning">Warning</Select.Option>
+737                <Select.Option value="error">Error</Select.Option>
+738              </Select>
+739            </Form.Item>
+740  
+741            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
+742              <Space>
+743                <Button
+744                  onClick={() => {
+745                    setCreateModalVisible(false);
+746                    form.resetFields();
+747                  }}
+748                >
+749                  Cancel
+750                </Button>
+751                <Button type="primary" htmlType="submit">
+752                  Create Notification
+753                </Button>
+754              </Space>
+755            </Form.Item>
+756          </Form>
+757        </Modal>
+758      </div>
+759    );
+760  };
+761  
+762  export default NotificationsPage;
