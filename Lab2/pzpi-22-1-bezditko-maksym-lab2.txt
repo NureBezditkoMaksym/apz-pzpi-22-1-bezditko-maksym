@@ -1,0 +1,860 @@
+Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+ЗВІТ
+з лабораторної роботи №2
+з дисципліни "Архітектура програмного забезпечення"
+на тему: "Розробка серверної частини системи"
+
+
+
+
+
+
+
+
+
+
+
+Виконав
+ст. гр. ПЗПІ-22-1
+Бездітко Максим Андрійович
+
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+
+
+
+
+
+
+
+
+
+
+
+
+
+Харків 2025 р.
+1 ІСТОРІЯ ЗМІН
+
+№
+Дата
+Версія звіту
+Опис змін та виправлень
+1
+22.04.2025
+0.1
+Створено документ, додано завдання та почато опис виконаної роботи.
+2
+22.04.2025
+0.2
+Додано опис математичного функціоналу.
+3
+22.04.2025
+0.3
+Додано опис функціоналу для операторів.
+4
+23.04.2025
+0.4
+Додано опис функціоналу для адміністраторів.
+5
+23.04.2025
+0.5
+Додано опис функціоналу для експорту/імпорту бази даних.
+
+
+2 ЗАВДАННЯ
+
+Внести зміни в існуючу серверну частину, які будуть містити: математичний функціонал бізнес логіки, функції адміністрування та взаємодії з системою, функціонал імпорту-експорту бази даних.
+
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+
+Перенесено всю попередню серверну частину без суттєвих змін, зокрема всі таблиці, функції та рольову модель, реалізовану на основі Supabase. Основна логіка реалізована за допомогою Supabase Edge Functions, які обробляють запити до ключових модулів системи: користувачів, ролей, метрик здоров’я, звітів, підписок та сповіщень. Усі дані зберігаються в базі PostgreSQL, архітектура якої зображена на ER-діаграмі. Діаграми зв’язків між таблицями, а також UML-діаграма прецедентів для серверної частини з урахуванням оновлень, наведені у відповідних додатках.
+	Усі запити до Edge Functions мають чітко визначену структуру та повертають стандартні HTTP-статуси (200, 201, 400, 404, 500) залежно від результату обробки. Для обробки помилок передбачено відповідні гілки в логіці кожної функції, з поверненням повідомлень про помилки у форматі JSON. Зокрема, реалізовані функції create-user, update-user, delete-user, assign-role, get-all-users, get-user-roles, create-health-metric, check-health-metric-today, generate-weekly-report, create-notification, create-subscription та інші, що охоплюють повний цикл взаємодії з даними користувачів, метрик та ролей.
+	Нововведенням є бізнес-алгоритм формування щотижневого звіту (generate-weekly-report), який активується вручну або автоматично за допомогою функції weekly-report-cron. Алгоритм щотижнево агрегує показники користувача (калорії, вода, кроки), розраховує середні значення та формує аналітичний JSON-звіт, який зберігається у таблиці reports. У разі активації через cron звіт надсилається на email користувача. У випадку помилок, таких як відсутність метрик чи проблеми з обробкою, сервер повертає HTTP 400 або 500 з поясненням.
+	Рольова модель включає чотири категорії користувачів: звичайні користувачі з роллю authenticated, які взаємодіють через мобільний або веб-клієнт та мають змогу переглядати, створювати та оновлювати власні дані; адміністратори з повним доступом до всіх таблиць і функцій, включно з керуванням підписками та ролями; аналітики, які мають доступ до звітів і функцій експорту/імпорту; та системні функції cron, які активуються лише за наявності спеціального секрету CRON_SECRET.
+	Система авторизації реалізована через вбудований механізм Supabase Auth: кожен користувач після реєстрації отримує унікальний auth_id, який використовується як зовнішній ключ у всіх таблицях. Перевірка доступу до функцій реалізована через JWT-токен, що надсилається в заголовку запиту. Роль користувача визначається за допомогою таблиці user_role_assignments, і лише користувачі з відповідною роллю можуть виконувати певні дії. Edge Functions здійснюють перевірку токена та ролі перед виконанням логіки.
+	Додатково реалізовано модуль експорту та імпорту даних для потреб резервного копіювання та міграції. Функція POST /export-database після перевірки пароля та авторизації викликає відповідні get-all-* функції для збору вмісту таблиць, а також окремо зчитує вміст таблиці user_role_assignments. Усі зібрані дані шифруються за допомогою AES-GCM з використанням пароля користувача та повертаються у вигляді зашифрованого JSON.
+	Функція POST /import-database приймає зашифрований або звичайний JSON-файл через multipart або raw запит. У разі зашифрованого формату дані розшифровуються за допомогою введеного або збереженого пароля. Далі система очищує таблиці у зворотному порядку залежностей, після чого вставляє імпортовані дані у відповідному порядку. Для користувачів автоматично створюються записи у Supabase Auth, а для всіх інших таблиць дані вставляються напряму. Усі етапи супроводжуються валідацією та логуванням результатів, включаючи підсумковий JSON-звіт з кількістю імпортованих записів і статусом кожної таблиці.
+	Описана логіка покриває всі функціональні можливості серверної частини системи здорового харчування. Її реалізація забезпечує масштабованість, безпеку, надійність та готовність до майбутнього розширення, зокрема через AI-модулі на основі історичних даних. 
+	Записуємо змістовне відео з описом проєкту, проставляємо таймкоди та завантажуємо на сервіс YouTube. Транскрипція та посилання на відео включено в додаток А.
+
+
+4 ВИСНОВКИ
+
+	У ході виконання роботи було внесено зміни в існуючу серверну частину, які будуть містять: математичний функціонал бізнес логіки, функції адміністрування та взаємодії з системою, функціонал імпорту-експорту бази даних.
+
+
+ДОДАТОК А
+ВІДЕОЗАПИС
+
+Відеозапис презентації результатів лабораторної роботи: https://youtu.be/7RemK2xlOBQ
+
+Хронологічний опис відеозапису:
+0:00 Вступ — представлення студента Бездітка Максима, група ПЗПІ-221.
+0:06 Назва лабораторної роботи №2 — «Розробка серверної частини системи».
+0:13 Огляд структури документа — історія змін, завдання, опис виконаної роботи.
+0:27 Перенесення серверної частини з попереднього семестру.
+0:41 Перелік реалізованих Edge Functions та формат відповідей.
+1:06 Огляд діаграм: ER-діаграма, структура бази, UML прецеденти.
+1:17 Впровадження cron-функцій для автоматичної звітності.
+1:33 Математична логіка звітів — обчислення середніх значень.
+1:49 Покращення роботи з ролями: створення, призначення, оновлення.
+2:13 Реалізація експорту/імпорту даних з шифруванням.
+2:41 Демонстрація функціоналу — генерація щотижневого звіту.
+3:02 Перевірка результату обчислень після оновлення даних.
+3:43 Оновлення health-метрик користувача та вплив на звіт.
+4:00 Динамічна зміна показників у відповіді функції generate-report.
+5:00 Демонстрація експорту бази даних з авторизацією.
+5:29 Наявність змінних середовища для захисту доступу до експорту.
+5:54 Перевірка вмісту зашифрованого файлу експорту.
+6:13 Очищення бази даних після експорту для демонстрації імпорту.
+6:24 Імпорт зашифрованого файлу з відновленням даних.
+6:46 Перевірка коректності відновлення — успішний імпорт.
+7:15 Перехід до таблиць — перевірка user_roles, users, reports, health_metrics.
+7:22 Підсумок реалізованого функціоналу в лабораторній роботі.
+7:49 Завершення — подяка за перегляд, зазначення групи та дисципліни.
+
+ДОДАТОК Б
+ГРАФІЧНІ МАТЕРІАЛИ
+
+
+Рисунок Б.1 — ER-діаграма даних
+
+
+Рисунок Б.2 — Структура бази даних
+
+Рисунок Б.3 — UML-діаграма прецедентів
+
+Рисунок Б.4  — UML-діаграма станів для математичного функціоналу формування звітів
+
+
+Рисунок Б.5 — UML-діаграма взаємодії для алгоритму перевірки доступу в систему
+
+
+Рисунок Б.6 — UML-діаграма станів для алгоритму експорту бази даних
+
+
+Рисунок Б.7 — UML-діаграма станів для алгоритму імпорту бази даних
+ДОДАТОК В
+ПРОГРАМНИЙ КОД
+
+В.1 Математична обробка прикладних даних.
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab2/pzpi-22-1-bezditko-maksym-lab2/supabase/functions/generate-weekly-report/index.ts
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface HealthMetric {
+  calories: number;
+  water_ml: number;
+  steps: number;
+  date: string;
+}
+
+interface WeeklyReport {
+  start_date: string;
+  end_date: string;
+  metrics: {
+    calories: {
+      average: number;
+      highest: number;
+      lowest: number;
+      total: number;
+    };
+    water_ml: {
+      average: number;
+      highest: number;
+      lowest: number;
+      total: number;
+    };
+    steps: {
+      average: number;
+      highest: number;
+      lowest: number;
+      total: number;
+    };
+  };
+  progress: {
+    caloriesProgress: number;     // % change from previous week
+    waterProgress: number;        // % change from previous week
+    stepsProgress: number;        // % change from previous week
+  };
+  days_tracked: number;          // number of days with data
+}
+
+function calculateMetricStats(metrics: number[]) {
+  const validMetrics = metrics.filter(m => m !== null && !isNaN(m));
+  if (validMetrics.length === 0) return { average: 0, highest: 0, lowest: 0, total: 0 };
+  
+  return {
+    average: Math.round(validMetrics.reduce((a, b) => a + b, 0) / validMetrics.length),
+    highest: Math.max(...validMetrics),
+    lowest: Math.min(...validMetrics),
+    total: validMetrics.reduce((a, b) => a + b, 0)
+  };
+}
+
+function calculateProgress(currentWeekTotal: number, previousWeekTotal: number): number {
+  if (previousWeekTotal === 0) return 0;
+  return Math.round(((currentWeekTotal - previousWeekTotal) / previousWeekTotal) * 100);
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const userId = url.searchParams.get('userId');
+    const endDate = url.searchParams.get('endDate') || new Date().toISOString().split('T')[0];
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "User ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Calculate date ranges
+    const endDateTime = new Date(endDate);
+    const startDateTime = new Date(endDateTime);
+    startDateTime.setDate(startDateTime.getDate() - 6); // Get 7 days of data
+
+    const previousEndDateTime = new Date(startDateTime);
+    previousEndDateTime.setDate(previousEndDateTime.getDate() - 1);
+    const previousStartDateTime = new Date(previousEndDateTime);
+    previousStartDateTime.setDate(previousStartDateTime.getDate() - 6);
+
+    // Fetch current week's metrics
+    const { data: currentWeekData, error: currentWeekError } = await supabaseClient
+      .from('health_metrics')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', startDateTime.toISOString().split('T')[0])
+      .lte('date', endDateTime.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (currentWeekError) throw new Error(`Failed to fetch current week metrics: ${currentWeekError.message}`);
+
+    // Fetch previous week's metrics for progress comparison
+    const { data: previousWeekData, error: previousWeekError } = await supabaseClient
+      .from('health_metrics')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', previousStartDateTime.toISOString().split('T')[0])
+      .lte('date', previousEndDateTime.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (previousWeekError) throw new Error(`Failed to fetch previous week metrics: ${previousWeekError.message}`);
+
+    // Process current week's data
+    const currentWeekMetrics = currentWeekData as HealthMetric[];
+    const previousWeekMetrics = previousWeekData as HealthMetric[];
+
+    const caloriesStats = calculateMetricStats(currentWeekMetrics.map(m => m.calories));
+    const waterStats = calculateMetricStats(currentWeekMetrics.map(m => m.water_ml));
+    const stepsStats = calculateMetricStats(currentWeekMetrics.map(m => m.steps));
+
+    const report: WeeklyReport = {
+      start_date: startDateTime.toISOString().split('T')[0],
+      end_date: endDateTime.toISOString().split('T')[0],
+      metrics: {
+        calories: caloriesStats,
+        water_ml: waterStats,
+        steps: stepsStats,
+      },
+      progress: {
+        caloriesProgress: calculateProgress(
+          caloriesStats.total,
+          calculateMetricStats(previousWeekMetrics.map(m => m.calories)).total
+        ),
+        waterProgress: calculateProgress(
+          waterStats.total,
+          calculateMetricStats(previousWeekMetrics.map(m => m.water_ml)).total
+        ),
+        stepsProgress: calculateProgress(
+          stepsStats.total,
+          calculateMetricStats(previousWeekMetrics.map(m => m.steps)).total
+        ),
+      },
+      days_tracked: currentWeekMetrics.length,
+    };
+
+    // Store the report in the database
+    const { error: insertError } = await supabaseClient
+      .from('reports')
+      .insert([{
+        user_id: userId,
+        report_date: endDate,
+        report_data: report,
+      }]);
+
+    if (insertError) throw new Error(`Failed to store report: ${insertError.message}`);
+
+    return new Response(JSON.stringify(report), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  } catch (error) {
+    console.error("Error in generateWeeklyReport function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "An unknown error occurred" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}); 
+
+
+В.2 Адміністрування бізнес-логіки системи.
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab2/pzpi-22-1-bezditko-maksym-lab2/supabase/functions/create-role/index.ts
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const { role_name } = await req.json();
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const { data, error } = await supabaseClient.from('user_roles').insert([
+      { role_name }
+    ]).select().single();
+
+    if (error) {
+      throw new Error(`Failed to create role: ${error.message}`);
+    }
+
+    return new Response(JSON.stringify(data), {
+      status: 201,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  } catch (error) {
+    console.error("Error in createRole function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "An unknown error occurred" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}); 
+
+
+В.3 Імпортування користувацьких даних.
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab2/pzpi-22-1-bezditko-maksym-lab2/supabase/functions/import-database/index.ts
+// @ts-ignore: Import from URL
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+interface TableData {
+  content: any[];
+}
+
+interface ImportData {
+  [tableName: string]: TableData;
+}
+
+// Helpers for AES-GCM decryption
+function decodeBase64(base64: string): Uint8Array {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+function decodeUTF8(buffer: Uint8Array): string {
+  return new TextDecoder().decode(buffer);
+}
+
+async function decryptData(
+  encryptedPayload: {
+    iv: string;
+    salt: string;
+    data: string;
+  },
+  password: string
+): Promise<ImportData> {
+  const { iv, salt, data } = encryptedPayload;
+
+  const ivBytes = decodeBase64(iv);
+  const saltBytes = decodeBase64(salt);
+  const encryptedBytes = decodeBase64(data);
+  const passwordBytes = new TextEncoder().encode(password);
+
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    passwordBytes,
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: saltBytes,
+      iterations: 100_000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["decrypt"]
+  );
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: ivBytes },
+    aesKey,
+    encryptedBytes
+  );
+
+  const decryptedText = decodeUTF8(new Uint8Array(decryptedBuffer));
+  return JSON.parse(decryptedText);
+}
+
+// Deno API for Supabase Edge Functions
+// @ts-ignore: Deno namespace will be available in Supabase Edge Functions environment
+Deno.serve(async (req) => {
+  try {
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse and decrypt uploaded data
+    let importData: ImportData;
+    try {
+      const contentType = req.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        // Support direct raw JSON (unencrypted)
+        importData = await req.json();
+      } else if (contentType.includes("multipart/form-data")) {
+        const formData = await req.formData();
+        const file = formData.get("file");
+
+        if (!file || !(file instanceof File)) {
+          throw new Error("No valid file uploaded");
+        }
+
+        const fileContent = await file.text();
+
+        try {
+          // Try to parse as encrypted payload first
+          const encryptedPayload = JSON.parse(fileContent);
+          const ENCRYPTION_PASSWORD =
+            Deno.env.get("ENCRYPTION_PASSWORD") ?? "default-secret";
+          importData = await decryptData(encryptedPayload, ENCRYPTION_PASSWORD);
+        } catch (maybeEncryptedError) {
+          try {
+            // Fallback to plain JSON
+            importData = JSON.parse(fileContent);
+          } catch (finalError) {
+            throw new Error("Invalid file format: " + finalError.message);
+          }
+        }
+      } else {
+        throw new Error("Unsupported content type. Please upload a JSON file.");
+      }
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          error: "Failed to parse import data: " + error.message,
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    const IMPORT_ORDER = [
+      "user_roles",
+      "users",
+      "user_role_assignments",
+      "subscriptions",
+      "health_metrics",
+      "reports",
+      "notifications",
+    ];
+
+    const results: Record<
+      string,
+      { success: boolean; message: string; count?: number }
+    > = {};
+
+    try {
+      await supabaseClient.rpc("exec_sql", {
+        query: "SET session_replication_role = 'replica';",
+      });
+    } catch (error) {
+      console.warn("Could not disable foreign key checks:", error.message);
+    }
+
+    console.log(importData);
+
+    const CLEAR_ORDER = [...IMPORT_ORDER].reverse();
+    for (const tableName of CLEAR_ORDER) {
+      if (importData[tableName]) {
+        try {
+          const { error: deleteError } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .gte("id", 0);
+
+          if (deleteError) {
+            console.warn(
+              `Error clearing table ${tableName}:`,
+              deleteError.message
+            );
+          }
+        } catch (error) {
+          console.error(`Error clearing table ${tableName}:`, error.message);
+        }
+      }
+    }
+
+    for (const tableName of IMPORT_ORDER) {
+      if (!importData[tableName]) {
+        results[tableName] = {
+          success: true,
+          message: "Table not found in import data",
+          count: 0,
+        };
+        continue;
+      }
+
+      const tableData = importData[tableName].content;
+
+      if (!tableData || !Array.isArray(tableData) || !tableData.length) {
+        results[tableName] = {
+          success: true,
+          message: "No data to import",
+          count: 0,
+        };
+        continue;
+      }
+
+      try {
+        const { error: insertError } = await supabaseClient
+          .from(tableName)
+          .insert(tableData);
+
+        if (tableName === "users") {
+          for (const user of tableData) {
+            await supabaseClient.auth.admin.createUser({
+              email: user.email,
+              email_confirm: true,
+              phone: user.phone,
+              user_metadata: {
+                username: user.username,
+                is_premium: user.is_premium ?? false,
+              },
+            });
+          }
+        }
+
+        if (insertError) {
+          results[tableName] = {
+            success: false,
+            message: `Error importing to ${tableName}: ${insertError.message}`,
+          };
+        } else {
+          results[tableName] = {
+            success: true,
+            message: "Import successful",
+            count: tableData.length,
+          };
+        }
+      } catch (error) {
+        results[tableName] = {
+          success: false,
+          message: `Exception importing to ${tableName}: ${error.message}`,
+        };
+      }
+    }
+
+    try {
+      await supabaseClient.rpc("exec_sql", {
+        query: "SET session_replication_role = 'origin';",
+      });
+    } catch (error) {
+      console.warn("Could not re-enable foreign key checks:", error.message);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Database import completed",
+        results,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Import error:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+});
+
+
+В.4 Експортування користувацьких даних.
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab2/pzpi-22-1-bezditko-maksym-lab2/supabase/functions/export-database/index.ts
+/// <reference types="https://deno.land/x/supabase@1.3.1/mod.ts" />
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const GET_ALL_FUNCTIONS = [
+  "get-all-users",
+  "get-all-health-metrics",
+  "get-all-subscriptions",
+  "get-all-notifications",
+  "get-all-reports",
+  "get-all-roles",
+];
+
+const TABLE_NAMES = [
+  "users",
+  "health_metrics",
+  "subscriptions",
+  "notifications",
+  "reports",
+  "user_roles",
+];
+
+function encode(text: string): Uint8Array {
+  return new TextEncoder().encode(text);
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
+
+async function encryptData(data: any, password: string): Promise<string> {
+  const jsonData = JSON.stringify(data);
+  const encodedPassword = encode(password);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    encodedPassword,
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: 100_000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt"]
+  );
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    aesKey,
+    encode(jsonData)
+  );
+
+  return JSON.stringify({
+    iv: arrayBufferToBase64(iv),
+    salt: arrayBufferToBase64(salt),
+    data: arrayBufferToBase64(encrypted),
+  });
+}
+
+serve(async (req: Request) => {
+  try {
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Create a Supabase client with the Auth context of the logged in user
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Get request body
+    const { password } = await req.json();
+
+    // Simple password check - in production, use a more secure approach
+    const ADMIN_PASSWORD = Deno.env.get("ADMIN_PASSWORD");
+    if (!password || password !== ADMIN_PASSWORD) {
+      return new Response(JSON.stringify({ error: "Invalid password" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Get Supabase URL for function calls
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+
+    // Export all tables by calling existing get-all functions
+    const exportData: Record<string, { content: any[] }> = {};
+
+    for (let i = 0; i < GET_ALL_FUNCTIONS.length; i++) {
+      const functionName = GET_ALL_FUNCTIONS[i];
+      const tableName = TABLE_NAMES[i];
+
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/${functionName}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authorization,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`Error calling ${functionName}:`, response.statusText);
+          exportData[tableName] = { content: [] };
+          continue;
+        }
+
+        const data = await response.json();
+        exportData[tableName] = { content: data };
+      } catch (error) {
+        console.error(`Error calling ${functionName}:`, error);
+        exportData[tableName] = { content: [] };
+      }
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${Deno.env.get(
+              "SUPABASE_SERVICE_ROLE_KEY"
+            )}`,
+          },
+        },
+      }
+    );
+
+    const { data: user_role_assignments } = await supabaseClient
+      .from("user_role_assignments")
+      .select("*");
+
+    // Handle user_role_assignments separately since there's no get-all function for it
+    exportData["user_role_assignments"] = { content: user_role_assignments };
+
+    await supabaseClient
+      .from("user_role_assignments")
+      .delete()
+      .neq("user_id", "00000000-0000-0000-0000-000000000000");
+    const { data: users } = await supabaseClient
+      .from("users")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000")
+      .select();
+
+    for (const user of users) {
+      await supabaseClient.auth.admin.deleteUser(user.auth_id);
+    }
+
+    await supabaseClient
+      .from("health_metrics")
+      .delete()
+      .neq("user_id", "00000000-0000-0000-0000-000000000000");
+    await supabaseClient
+      .from("subscriptions")
+      .delete()
+      .neq("user_id", "00000000-0000-0000-0000-000000000000");
+    await supabaseClient
+      .from("notifications")
+      .delete()
+      .neq("user_id", "00000000-0000-0000-0000-000000000000");
+    await supabaseClient
+      .from("reports")
+      .delete()
+      .neq("user_id", "00000000-0000-0000-0000-000000000000");
+    await supabaseClient
+      .from("user_roles")
+      .delete()
+      .neq("role_id", "00000000-0000-0000-0000-000000000000");
+
+    const ENCRYPTION_PASSWORD =
+      Deno.env.get("ENCRYPTION_PASSWORD") ?? "default-secret";
+    const encryptedExport = await encryptData(exportData, ENCRYPTION_PASSWORD);
+
+    // Return the encrypted export
+    return new Response(encryptedExport, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Disposition":
+          'attachment; filename="database-export.encrypted.json"',
+      },
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+});
+
+
+
