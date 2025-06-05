@@ -1,0 +1,906 @@
+﻿Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+
+
+
+
+
+ЗВІТ
+з лабораторної роботи №4
+з дисципліни "Архітектура програмного забезпечення"
+на тему: "Розробка мобільного клієнта системи"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Виконав
+ст. гр. ПЗПІ-22-1
+Бездітко Максим Андрійович
+
+
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Харків 2025 р.
+1 ІСТОРІЯ ЗМІН
+
+
+№
+	Дата
+	Версія звіту
+	Опис змін та виправлень
+	1
+	22.04.2025
+	0.1
+	Створено документ, додано завдання та почато опис виконаної роботи.
+	2
+	22.04.2025
+	0.2
+	Додано опис функціоналу для користувачів.
+	3
+	22.04.2025
+	0.3
+	Додано опис функціоналу для перегляду показників здоров’я.
+	________________
+
+
+2 ЗАВДАННЯ
+
+
+Розробити мобільну частину, яка буде містити: функції взаємодії з системою та функціонал перегляду сповіщень.
+________________
+
+
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+
+
+
+
+Новим етапом розвитку системи контролю за здоров’ям стало створення мобільного клієнта, реалізованого мовою Swift з використанням архітектури MVVM (Model–View–ViewModel) та декларативного UI-фреймворку SwiftUI. Основне призначення цього компонента — забезпечити користувачеві швидкий і зручний доступ до ключових функцій системи зі смартфона. У межах реалізованого функціоналу користувач має змогу зареєструватися або увійти до системи, переглядати й створювати власні показники здоров’я (health metrics), працювати з персональними звітами, переглядати профіль та здійснювати вихід із застосунку.
+        Swift було обрано як основну мову розробки завдяки її високій продуктивності, безпеці типів, сучасному синтаксису та глибокій інтеграції з платформою iOS. Архітектура MVVM дозволила розділити логіку бізнес-процесів, управління станом та інтерфейс користувача. Уся логіка організована в окремих сервісах (AuthService, HealthMetricService, ReportService, тощо), які відповідають за взаємодію з Supabase API, тоді як ViewModel-и (наприклад, AuthViewModel, HealthMetricViewModel, ReportViewModel) обробляють стани й трансформують дані для відображення у відповідних View-компонентах.
+        Інтерфейс мобільного застосунку реалізовано через SwiftUI, що дозволяє створювати реактивні й адаптивні UI-компоненти з мінімальним шаблонним кодом. Всі основні екрани (включаючи LoginView, SignUpView, HomeView, HealthMetricsView, ReportsView, ProfileView) згруповані у відповідні підмодулі, з чітко визначеними переходами між ними, які реалізовано у MainTabView і MainView.
+        Функціональні можливості програми охоплюють:
+* автентифікацію та реєстрацію з використанням Supabase Auth та збереженням JWT-токену;
+* перегляд та створення записів health metrics;
+* доступ до персоналізованих щотижневих звітів за обраним діапазоном дат;
+* перегляд профілю користувача;
+* вихід із застосунку, що призводить до очищення токену та повернення на екран авторизації.
+Життєвий цикл взаємодії користувача з інтерфейсом побудований на переходах між станами залежно від автентифікаційного статусу. При запуску додатку виконується перевірка токена (AuthViewModel), після чого користувач або автоматично потрапляє на головний екран (HomeView), або перенаправляється на LoginView. Після входу чи реєстрації відкривається головний інтерфейс з можливістю переходу до вкладок HealthMetricsView, ReportsView, ProfileView, а також виконання виходу.
+        Для повноти розуміння системи реалізовано діаграму компонентів, яка демонструє модульну структуру проєкту, а також діаграму станів, що ілюструє весь цикл авторизації, навігації та взаємодії. Уся архітектура спроєктована з урахуванням подальшої масштабованості, розширення функціоналу та легкості в обслуговуванні, що дозволяє ефективно розвивати застосунок у рамках обраної концепції системи контролю за здоров’ям.
+        Записуємо змістовне відео з описом проєкту, проставляємо таймкоди та завантажуємо на сервіс YouTube. Транскрипція та посилання на відео включено в додаток А.
+________________
+
+
+4 ВИСНОВКИ
+
+
+        У ході виконання роботи було розроблено мобільну частину, яка містить: функції взаємодії з системою та функціонал перегляду сповіщень.
+
+
+________________
+
+
+ДОДАТОК А
+ВІДЕОЗАПИС
+
+
+Відеозапис презентації результатів лабораторної роботи: https://youtu.be/dAID9GMG5OY
+
+
+Хронологічний опис відеозапису:
+0:00 Вступ — ім’я студента, тема лабораторної роботи №4 (мобільний клієнт).
+0:12 Опис структури звіту — історія змін, завдання, опис виконаної роботи.
+0:26 Завдання — реалізація взаємодії з бекендом, перегляд сповіщень.
+0:40 Технології — Swift, SwiftUI, архітектура MVVM.
+1:02 Платформа — нативна iOS-розробка, переваги вибраного підходу.
+1:28 Реалізований функціонал — реєстрація, вхід, робота з метриками, звітами, профілем.
+1:50 Переваги Swift та MVVM — продуктивність, типобезпека, розділення відповідальностей.
+2:16 Архітектура — винесення логіки в сервіси, компоненти UI згруповані по модулях.
+2:39 Узагальнення функціоналу — можливості додатку та життєвий цикл взаємодії.
+3:01 Висновки — виконано всі поставлені завдання, реалізована повна інтеграція.
+3:23 Додаток А — відеозапис, таймкоди, посилання.
+3:38 UML-діаграми — прецедентів, компонентів, станів, пакетів.
+3:55 Перехід до демонстрації — практичне тестування додатку.
+4:07 Демонстрація логіну — користувач успішно заходить у систему.
+4:21 Порівняння з веб-клієнтом — консистентність даних.
+4:26 Метрики — перегляд і створення нових health metrics.
+4:41 Синхронізація — дані оновлюються після створення/видалення.
+5:03 Звіти — перегляд, створення та видалення звітів.
+5:23 Перегляд нового звіту — успішне відображення в UI.
+5:38 Сповіщення — відображення тестових повідомлень у мобільному додатку.
+6:00 Синхронізація з веб-клієнтом — створення й видалення сповіщень.
+6:33 Доступність звітів — за будь-який період (напр., 13 травня).
+6:44 Метрики — вибір дати, створення/видалення записів.
+7:02 Дешборд — ключові віджети, відповідність веб-версії.
+7:16 Профіль — інформація про підписку, вихід із системи.
+7:35 Реєстрація — створення нового користувача.
+7:44 Висновок — зручність, доступність, мобільність.
+8:00 Обмеження — розширений функціонал (експорт, ролі) доступний лише у веб.
+8:15 Завершення — подяка, ім’я студента, номер групи, номер роботи.
+________________
+
+
+ДОДАТОК Б
+ГРАФІЧНІ МАТЕРІАЛИ
+
+
+  
+
+Рисунок Б.1 — UML-діаграма прецедентів
+
+
+  
+
+Рисунок Б.2 — UML-діаграма компонентів
+  
+
+Рисунок Б.3 — UML-діаграма станів
+
+
+
+
+  
+
+Рисунок Б.4 — UML-діаграма пакетів
+________________
+ДОДАТОК В
+ПРОГРАМНИЙ КОД
+
+
+В.1 HealthMetricsView.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Views/HealthMetricsView.swift
+1  import SwiftUI
+2  
+3  struct HealthMetricsView: View {
+4      @StateObject private var viewModel = HealthMetricViewModel()
+5      @State private var showingFormSheet = false
+6  
+7      var body: some View {
+8          NavigationView {
+9              VStack(alignment: .leading, spacing: 10) {
+10                  Text("Track your daily progress and review your history.")
+11                      .padding(.horizontal)
+12                      .foregroundColor(.secondary)
+13                  
+14                  if viewModel.isLoading && viewModel.metrics.isEmpty {
+15                      ProgressView("Loading Metrics...")
+16                          .frame(maxWidth: .infinity)
+17                  } else if let errorMessage = viewModel.errorMessage {
+18                      VStack {
+19                          Text("Error").font(.headline).foregroundColor(.red)
+20                          Text(errorMessage).padding()
+21                          Button("Retry") { Task { await viewModel.fetchMetrics() } }
+22                              .buttonStyle(.bordered)
+23                      }
+24                      .frame(maxWidth: .infinity)
+25                  } else if viewModel.metrics.isEmpty {
+26                      Text("No health metrics recorded yet.")
+27                          .font(.headline)
+28                          .foregroundColor(.secondary)
+29                          .frame(maxWidth: .infinity)
+30                  } else {
+31                      List {
+32                          ForEach(viewModel.metrics) { metric in
+33                              MetricRowView(metric: metric)
+34                                  .contentShape(Rectangle())
+35                                  .onTapGesture {
+36                                      viewModel.setForm(for: metric)
+37                                      showingFormSheet = true
+38                                  }
+39                          }
+40                          .onDelete(perform: delete)
+41                      }
+42                      .listStyle(.plain)
+43                      .refreshable {
+44                          await viewModel.fetchMetrics()
+45                      }
+46                  }
+47              }
+48              .navigationTitle("Health Metrics")
+49              .toolbar {
+50                  ToolbarItem(placement: .primaryAction) {
+51                      Button(action: {
+52                          viewModel.setForm(for: nil)
+53                          showingFormSheet = true
+54                      }) {
+55                          Image(systemName: "plus.circle.fill")
+56                              .font(.title2)
+57                      }
+58                  }
+59              }
+60              .sheet(isPresented: $showingFormSheet) {
+61                  MetricFormView(viewModel: viewModel)
+62              }
+63              .task {
+64                  await viewModel.fetchMetrics()
+65              }
+66          }
+67      }
+68  
+69      private func delete(at offsets: IndexSet) {
+70          Task {
+71              await viewModel.deleteMetric(at: offsets)
+72          }
+73      }
+74  }
+75  
+76  // A view for a single row in the health metrics list
+77  struct MetricRowView: View {
+78      let metric: HealthMetric
+79  
+80      var body: some View {
+81          HStack(spacing: 15) {
+82              Text(formattedDate(from: metric.date))
+83                  .font(.headline)
+84                  .frame(width: 80, alignment: .leading)
+85              
+86              VStack(alignment: .leading, spacing: 4) {
+87                  if let steps = metric.steps {
+88                      Text("👣 Steps: \(steps)")
+89                  }
+90                  if let calories = metric.calories {
+91                      Text("🔥 Calories: \(calories)")
+92                  }
+93                  if let waterMl = metric.waterMl {
+94                      Text("💧 Water: \(waterMl) ml")
+95                  }
+96              }
+97              Spacer()
+98          }
+99          .padding(.vertical, 8)
+100      }
+101      
+102      private func formattedDate(from dateString: String) -> String {
+103          let formatter = ISO8601DateFormatter()
+104          formatter.formatOptions = [.withFullDate]
+105          if let date = formatter.date(from: dateString) {
+106              return date.formatted(date: .abbreviated, time: .omitted)
+107          }
+108          return dateString
+109      }
+110  }
+111  
+112  // Renamed from CreateHealthMetricView to a more generic MetricFormView
+113  struct MetricFormView: View {
+114      @ObservedObject var viewModel: HealthMetricViewModel
+115      @Environment(\.dismiss) private var dismiss
+116  
+117      private var isEditing: Bool {
+118          !viewModel.steps.isEmpty || !viewModel.calories.isEmpty || !viewModel.waterMl.isEmpty
+119      }
+120  
+121      var body: some View {
+122          NavigationView {
+123              Form {
+124                  Section(header: Text("Log Metric")) {
+125                      DatePicker("Date", selection: $viewModel.selectedDate, displayedComponents: .date)
+126                      
+127                      HStack {
+128                          Text("👣")
+129                          TextField("Steps", text: $viewModel.steps)
+130                              .keyboardType(.numberPad)
+131                      }
+132                      
+133                      HStack {
+134                          Text("🔥")
+135                          TextField("Calories", text: $viewModel.calories)
+136                              .keyboardType(.numberPad)
+137                      }
+138                      
+139                      HStack {
+140                          Text("💧")
+141                          TextField("Water (ml)", text: $viewModel.waterMl)
+142                              .keyboardType(.numberPad)
+143                      }
+144                  }
+145                  
+146                  if let errorMessage = viewModel.errorMessage {
+147                      Section {
+148                          Text(errorMessage)
+149                              .foregroundColor(.red)
+150                      }
+151                  }
+152              }
+153              .navigationTitle(isEditing ? "Edit Metric" : "New Metric")
+154              .navigationBarItems(
+155                  leading: Button("Cancel") {
+156                      dismiss()
+157                  },
+158                  trailing: Button(isEditing ? "Update" : "Save") {
+159                      Task {
+160                          await viewModel.saveMetric()
+161                          if viewModel.errorMessage == nil {
+162                              dismiss()
+163                          }
+164                      }
+165                  }
+166                  .disabled(viewModel.isLoading)
+167              )
+168          }
+169      }
+170  }
+171  
+172  struct HealthMetricsView_Previews: PreviewProvider {
+173      static var previews: some View {
+174          NavigationView {
+175              HealthMetricsView()
+176          }
+177      }
+178  } 
+
+
+В.2 NotificationsView.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Views/NotificationsView.swift
+1  import SwiftUI
+2  
+3  struct NotificationsView: View {
+4      @StateObject private var viewModel = NotificationViewModel()
+5      
+6      var body: some View {
+7          NavigationView {
+8              VStack {
+9                  if viewModel.isLoading && viewModel.notifications.isEmpty {
+10                      ProgressView("Loading...")
+11                  } else if let error = viewModel.errorMessage {
+12                      Text(error).foregroundColor(.red).padding()
+13                  } else if viewModel.notifications.isEmpty {
+14                      Text("You have no notifications.").foregroundColor(.secondary)
+15                  } else {
+16                      List {
+17                          ForEach(viewModel.notifications) { notification in
+18                              VStack(alignment: .leading, spacing: 4) {
+19                                  Text(notification.message)
+20                                  Text(notification.sentAt?.formatted(date: .numeric, time: .shortened) ?? "Just now")
+21                                      .font(.caption)
+22                                      .foregroundColor(.secondary)
+23                              }
+24                              .padding(.vertical, 4)
+25                          }
+26                          .onDelete(perform: delete)
+27                      }
+28                      .listStyle(.plain)
+29                  }
+30              }
+31              .navigationTitle("Notifications")
+32              .task {
+33                  await viewModel.fetchNotifications()
+34              }
+35              .refreshable {
+36                  await viewModel.fetchNotifications()
+37              }
+38          }
+39      }
+40      
+41      private func delete(at offsets: IndexSet) {
+42          Task {
+43              await viewModel.deleteNotification(at: offsets)
+44          }
+45      }
+46  }
+47  
+48  struct NotificationsView_Previews: PreviewProvider {
+49      static var previews: some View {
+50          NotificationsView()
+51      }
+52  } 
+
+
+В.3 HomeView.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Views/HomeView.swift
+1  import SwiftUI
+2  
+3  struct HomeView: View {
+4      @StateObject private var viewModel = DashboardViewModel()
+5  
+6      var body: some View {
+7          NavigationView {
+8              ScrollView {
+9                  VStack(alignment: .leading, spacing: 25) {
+10                      Text("Welcome!")
+11                          .font(.largeTitle)
+12                          .fontWeight(.bold)
+13                      
+14                      if viewModel.isLoading {
+15                          ProgressView("Loading summary...")
+16                              .frame(maxWidth: .infinity)
+17                      } else if let summary = viewModel.summary {
+18                          DashboardSummaryView(summary: summary)
+19                      } else {
+20                          Text("No recent activity to display. Start by logging a metric!")
+21                              .foregroundColor(.secondary)
+22                              .multilineTextAlignment(.center)
+23                              .padding()
+24                      }
+25                      
+26                      VStack(alignment: .leading) {
+27                          Text("Features")
+28                              .font(.title2)
+29                              .fontWeight(.bold)
+30                          NavigationLink(destination: HealthMetricsView()) {
+31                              FeatureRow(icon: "heart.text.square.fill", title: "Health Metrics", subtitle: "View & manage daily logs")
+32                          }
+33                          Divider()
+34                          NavigationLink(destination: ReportsView()) {
+35                              FeatureRow(icon: "chart.bar.xaxis", title: "Reports", subtitle: "Generate & view historical reports")
+36                          }
+37                      }
+38                      .padding()
+39                      .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+40  
+41                  }
+42                  .padding()
+43              }
+44              .navigationTitle("Dashboard")
+45              .background(Color(UIColor.systemGroupedBackground))
+46              .task {
+47                  await viewModel.fetchSummary()
+48              }
+49              .refreshable {
+50                  await viewModel.fetchSummary()
+51              }
+52          }
+53      }
+54  }
+55  
+56  struct DashboardSummaryView: View {
+57      let summary: HealthSummary
+58      
+59      var body: some View {
+60          VStack(alignment: .leading) {
+61              Text("Last 7 Days Summary")
+62                  .font(.title2)
+63                  .fontWeight(.bold)
+64                  .padding(.bottom, 5)
+65  
+66              HStack {
+67                  SummaryStatView(icon: "figure.walk", value: "\(summary.totalSteps)", label: "Total Steps")
+68                  Spacer()
+69                  SummaryStatView(icon: "flame.fill", value: String(format: "%.0f", summary.avgCalories), label: "Avg Calories/Day")
+70                  Spacer()
+71                  SummaryStatView(icon: "drop.fill", value: String(format: "%.0f", summary.avgWater), label: "Avg Water/Day (ml)")
+72              }
+73              .padding()
+74              .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+75          }
+76      }
+77  }
+78  
+79  struct SummaryStatView: View {
+80      let icon: String
+81      let value: String
+82      let label: String
+83      
+84      var body: some View {
+85          VStack(spacing: 4) {
+86              Image(systemName: icon)
+87                  .font(.title)
+88                  .foregroundColor(.accentColor)
+89              Text(value)
+90                  .font(.title2)
+91                  .fontWeight(.bold)
+92              Text(label)
+93                  .font(.caption)
+94                  .foregroundColor(.secondary)
+95          }
+96      }
+97  }
+98  
+99  /// A reusable view for feature navigation rows.
+100  struct FeatureRow: View {
+101      let icon: String
+102      let title: String
+103      let subtitle: String
+104      
+105      var body: some View {
+106          HStack(spacing: 15) {
+107              Image(systemName: icon)
+108                  .font(.title)
+109                  .foregroundColor(.accentColor)
+110                  .frame(width: 40)
+111              
+112              VStack(alignment: .leading) {
+113                  Text(title)
+114                      .font(.headline)
+115                  Text(subtitle)
+116                      .font(.subheadline)
+117                      .foregroundColor(.secondary)
+118              }
+119              Spacer()
+120              Image(systemName: "chevron.right")
+121                  .foregroundColor(.secondary)
+122          }
+123          .padding(.vertical, 8)
+124      }
+125  }
+126  
+127  struct HomeView_Previews: PreviewProvider {
+128      static var previews: some View {
+129          HomeView()
+130      }
+131  } 
+
+
+В.4 AuthService.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Services/AuthService.swift
+1  import Foundation
+2  import Supabase
+3  import Combine
+4  
+5  class AuthService: ObservableObject {
+6      static let shared = AuthService()
+7  
+8      @Published var session: Session?
+9      @Published var user: Supabase.User?
+10      @Published var userProfile: UserProfile? // The user's public profile
+11      @Published var isAuthenticated: Bool = false
+12      @Published var isLoading: Bool = false
+13      @Published var errorMessage: String?
+14  
+15      // Task to manage the observation of auth state changes
+16      private var authStateTask: Task<Void, Never>? = nil
+17  
+18      private let client = SupabaseManager.shared.client
+19  
+20      private init() {
+21          // Start observing authentication state changes
+22          authStateTask = Task {
+23              // Ensure this loop runs on the main actor for UI updates
+24              // or dispatch to main actor specifically where UI properties are updated.
+25              for await (event, session) in await client.auth.authStateChanges {
+26                  // Ensure updates to @Published properties are on the main thread
+27                  await MainActor.run {
+28                      let wasAuthenticated = self.isAuthenticated
+29                      self.session = session
+30                      self.user = session?.user
+31                      self.isAuthenticated = session?.user != nil
+32                      self.isLoading = false // Reset loading state on auth change
+33                      
+34                      // If we just logged in, fetch the user profile.
+35                      if self.isAuthenticated && !wasAuthenticated {
+36                          Task { await self.fetchUserProfile() }
+37                      }
+38                      // If we just logged out, clear the user profile.
+39                      else if !self.isAuthenticated && wasAuthenticated {
+40                          self.userProfile = nil
+41                      }
+42                      
+43                      // Optional: Handle specific events
+44                      // switch event {
+45                      // case .signedIn, .initialSession, .signedOut, .userUpdated, .userDeleted, .tokenRefreshed:
+46                      //     break
+47                      // case .passwordRecovery:
+48                      //     self.errorMessage = "Password recovery email sent."
+49                      //     break
+50                      // }
+51                  }
+52              }
+53          }
+54          
+55          // Check initial session state
+56          Task {
+57              await getInitialSession()
+58          }
+59      }
+60      
+61      deinit {
+62          // Cancel the task when the AuthService is deinitialized
+63          authStateTask?.cancel()
+64      }
+65  
+66      func getInitialSession() async {
+67          await MainActor.run {
+68              self.isLoading = true
+69          }
+70          do {
+71              let currentSession = try await client.auth.session
+72              await MainActor.run {
+73                  self.session = currentSession
+74                  self.user = currentSession.user
+75                  self.isAuthenticated = currentSession.user != nil
+76              }
+77              if self.isAuthenticated {
+78                  await self.fetchUserProfile()
+79              }
+80          } catch {
+81              await MainActor.run {
+82                  self.errorMessage = "Error fetching initial session: \(error.localizedDescription)"
+83              }
+84          }
+85          await MainActor.run { self.isLoading = false }
+86      }
+87      
+88      private func fetchUserProfile() async {
+89          guard self.isAuthenticated else { return }
+90          do {
+91              let profile = try await ProfileService.shared.fetchUserProfile()
+92              await MainActor.run {
+93                  self.userProfile = profile
+94              }
+95          } catch {
+96              await MainActor.run {
+97                  self.errorMessage = "Could not load user profile."
+98              }
+99          }
+100      }
+101  
+102      func signUp(email: String, password: String, username: String) async {
+103          await MainActor.run {
+104              self.isLoading = true
+105              self.errorMessage = nil
+106          }
+107          do {
+108              _ = try await client.auth.signUp(
+109                  email: email,
+110                  password: password,
+111                  data: ["username": .string(username)]
+112              )
+113              // Auth state change listener will update published properties, but we won't be logged in yet
+114              // if email confirmation is required.
+115          } catch let error as AuthError {
+116              await MainActor.run {
+117                  switch error {
+118                  case .weakPassword(let message):
+119                      self.errorMessage = "The password is too weak: \(message)"
+120                  default:
+121                      // A specific .userAlreadyExists case doesn't exist.
+122                      // The server often returns a generic error for this, so we provide a general message.
+123                      self.errorMessage = "Could not create account. A user with this email may already exist. (\(error.localizedDescription))"
+124                  }
+125                  self.isLoading = false
+126              }
+127          } catch {
+128              await MainActor.run {
+129                  self.errorMessage = "An unexpected error occurred during sign-up: \(error.localizedDescription)"
+130                  self.isLoading = false
+131              }
+132          }
+133      }
+134  
+135      func signIn(email: String, password: String) async {
+136          await MainActor.run {
+137              self.isLoading = true
+138              self.errorMessage = nil
+139          }
+140          do {
+141              _ = try await client.auth.signIn(email: email, password: password)
+142              // Auth state change listener will update published properties
+143          } catch is AuthError {
+144              await MainActor.run {
+145                  // The most common sign-in errors (wrong password, user not found, unconfirmed email)
+146                  // are returned as a generic AuthError by the API.
+147                  // We provide a single, clear message for all these cases.
+148                  self.errorMessage = "Invalid email or password. Please check your credentials and try again."
+149                  self.isLoading = false
+150              }
+151          } catch {
+152              await MainActor.run {
+153                  self.errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
+154                  self.isLoading = false
+155              }
+156          }
+157      }
+158  
+159      func signOut() async {
+160          await MainActor.run {
+161              self.isLoading = true
+162              self.errorMessage = nil
+163          }
+164          do {
+165              try await client.auth.signOut()
+166              // Auth state change listener will update published properties
+167          } catch {
+168              await MainActor.run {
+169                  self.errorMessage = error.localizedDescription
+170                  self.isLoading = false
+171              }
+172          }
+173      }
+174  } 
+
+
+В.5 HealthMetricService.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Services/HealthMetricService.swift
+1  import Foundation
+2  import Supabase
+3  
+4  /// A helper struct for inserting a new health metric,
+5  /// matching the database table structure.
+6  private struct HealthMetricInsert: Encodable {
+7      let date: String
+8      let steps: Int?
+9      let calories: Int?
+10      let water_ml: Int?
+11      let user_id: String
+12  }
+13  
+14  /// A helper struct for updating a health metric.
+15  private struct HealthMetricUpdate: Encodable {
+16      let date: String?
+17      let steps: Int?
+18      let calories: Int?
+19      let water_ml: Int?
+20  }
+21  
+22  /// Service class to manage all database operations for health metrics.
+23  class HealthMetricService {
+24      static let shared = HealthMetricService()
+25      private let client = SupabaseManager.shared.client
+26  
+27      /// Fetches all health metrics for the currently logged-in user,
+28      /// ordered by date descending.
+29      func fetchHealthMetrics() async throws -> [HealthMetric] {
+30          guard let userId = AuthService.shared.userProfile?.id else {
+31              throw NSError(domain: "HealthMetricServiceError", code: -1, userInfo: [NSLocalizedDescriptionKey: "User profile not available"])
+32          }
+33          
+34          let response: [HealthMetric] = try await client.database
+35              .from("health_metrics")
+36              .select()
+37              .eq("user_id", value: userId)
+38              .order("date", ascending: false)
+39              .execute()
+40              .value
+41              
+42          return response
+43      }
+44  
+45      /// Creates a new health metric record in the database.
+46      /// - Parameters:
+47      ///   - date: The date for the new metric.
+48      ///   - steps: The number of steps taken.
+49      ///   - calories: The number of calories consumed.
+50      ///   - waterMl: The amount of water consumed in milliliters.
+51      func createHealthMetric(date: Date, steps: Int?, calories: Int?, waterMl: Int?) async throws {
+52          guard let userId = AuthService.shared.userProfile?.id else {
+53              throw NSError(domain: "HealthMetricServiceError", code: -1, userInfo: [NSLocalizedDescriptionKey: "User profile not available"])
+54          }
+55  
+56          let dateFormatter = ISO8601DateFormatter()
+57          dateFormatter.formatOptions = [.withFullDate]
+58          let dateString = dateFormatter.string(from: date)
+59  
+60          let newMetric = HealthMetricInsert(
+61              date: dateString,
+62              steps: steps,
+63              calories: calories,
+64              water_ml: waterMl,
+65              user_id: userId
+66          )
+67  
+68          try await client.database
+69              .from("health_metrics")
+70              .insert(newMetric)
+71              .execute()
+72      }
+73  
+74      /// Updates an existing health metric in the database.
+75      func updateHealthMetric(metricId: String, date: Date, steps: Int?, calories: Int?, waterMl: Int?) async throws {
+76          let dateFormatter = ISO8601DateFormatter()
+77          dateFormatter.formatOptions = [.withFullDate]
+78          let dateString = dateFormatter.string(from: date)
+79  
+80          let updatedMetric = HealthMetricUpdate(
+81              date: dateString,
+82              steps: steps,
+83              calories: calories,
+84              water_ml: waterMl
+85          )
+86  
+87          try await client.database
+88              .from("health_metrics")
+89              .update(updatedMetric)
+90              .eq("metric_id", value: metricId)
+91              .execute()
+92      }
+93  
+94      /// Deletes a specific health metric from the database.
+95      func deleteHealthMetric(metricId: String) async throws {
+96          try await client.database
+97              .from("health_metrics")
+98              .delete()
+99              .eq("metric_id", value: metricId)
+100              .execute()
+101      }
+102  } 
+
+
+В.6 ProfileService.swift
+Репозиторій: https://github.com/NureBezditkoMaksym/apz-pzpi-22-1-bezditko-maksym/blob/main/Lab4/pzpi-22-1-bezditko-maksym-lab4/mobile/HealthApp/Services/ProfileService.swift
+1  import Foundation
+2  import Supabase
+3  
+4  private struct ProfileUpdate: Encodable {
+5      let username: String
+6      let phone: String?
+7      let updated_at: String
+8  }
+9  
+10  class ProfileService {
+11      static let shared = ProfileService()
+12      private let client = SupabaseManager.shared.client
+13      
+14      /// Fetches the full user profile from the `users` table.
+15      func fetchUserProfile() async throws -> UserProfile? {
+16          guard let userId = AuthService.shared.user?.id else {
+17              throw NSError(domain: "ProfileServiceError", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+18          }
+19          
+20          let response: [UserProfile] = try await client.database
+21              .from("users")
+22              // Explicitly select all columns for clarity and to ensure 'phone' is included.
+23              .select("id, updated_at, username, email, phone, is_premium")
+24              .eq("auth_id", value: userId.uuidString)
+25              .limit(1)
+26              .execute()
+27              .value
+28          
+29          return response.first
+30      }
+31      
+32      /// Updates the user's profile information.
+33      func updateUserProfile(username: String, phone: String?) async throws {
+34          guard let userId = AuthService.shared.user?.id else {
+35              throw NSError(domain: "ProfileServiceError", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+36          }
+37          
+38          let update = ProfileUpdate(
+39              username: username,
+40              phone: phone,
+41              updated_at: DateFormatter.iso8601Full.string(from: Date())
+42          )
+43          
+44          try await client.database
+45              .from("users")
+46              .update(update)
+47              .eq("auth_id", value: userId.uuidString)
+48              .execute()
+49      }
+50  }
