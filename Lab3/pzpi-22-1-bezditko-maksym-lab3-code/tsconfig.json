@@ -21,6 +21,6 @@
     "jsx": "react-jsx"
   },
   "include": [
-    "../pzpi-22-1-bezditko-maksym-lab3-code/src"
+    "src"
   ]
 }
