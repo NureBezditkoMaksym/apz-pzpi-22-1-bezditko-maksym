@@ -1,0 +1,14 @@
+[wokwi]
+version = 1
+firmware = "build/sketch.ino.bin"
+elf = "build/sketch.ino.elf"
+# See https://docs.wokwi.com/guides/projects#wokwi.toml-file-format
+
+[[dependencies]]
+name = "ezButton"
+
+[[dependencies]]
+name = "ArduinoJson"
+
+[[dependencies]]
+name = "RTClib"

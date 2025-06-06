@@ -34,15 +34,17 @@ Deno.serve(async (req: Request) => {
     // Fetch user ID by email
     const { data: userData, error: userError } = await supabaseClient
       .from('users')
-      .select('auth_id')
+      .select('*')
       .eq('email', email)
       .single();
+
+    console.log(userData);
 
     if (userError || !userData) {
       throw new Error(`Failed to fetch user: ${userError?.message || "User not found"}`);
     }
 
-    const userId = userData.auth_id;
+    const userId = userData.id;
 
 		console.log(userId);
 
